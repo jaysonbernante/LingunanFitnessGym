@@ -272,7 +272,7 @@ $currentFile = isset($page) ? $page : basename($_SERVER['PHP_SELF']);
       });
     }
 
-    // ── Auto-logout after 20 min of inactivity (client-side guard) ─────────
+    // ── Auto-logout after 20 min of inactivity (calient-side guard) ─────────
     var IDLE_TIMEOUT   = 20 * 60 * 1000; // 20 minutes in ms
     var WARN_BEFORE    = 60 * 1000;       // show warning 60s before logout
     var logoutUrl      = document.getElementById('logoutConfirm') ? document.getElementById('logoutConfirm').href : 'logout.php';

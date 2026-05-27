@@ -207,7 +207,7 @@ $currentFile = isset($page) ? $page : basename($_SERVER['PHP_SELF']);
   </a>
 </aside>
 
-<!-- ── Logout Confirmation Modal ─────────────────────────────────────── -->
+<!-- ── Logout Confirmatioan Modal ─────────────────────────────────────── -->
 <div id="logoutModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.55);z-index:10000;align-items:center;justify-content:center;">
   <div style="background:#1e1e2e;border-radius:12px;padding:36px 32px;max-width:380px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.5);text-align:center;">
     

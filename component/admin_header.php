@@ -108,7 +108,7 @@ $_notifCount = count($_notifications);
     <div class="logo-text">Lingunan<span>FitnessGym</span></div>
   </div>
   <div class="header-actions">
-    <!-- Notification bell -->
+    <!-- Notification bellaa -->
     <div class="notif-wrap" id="notifWrap">
       <span class="notif" id="notifBell" title="Notifications">&#128276;</span>
       <?php if ($_notifCount > 0): ?>
