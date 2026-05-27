@@ -1,7 +1,7 @@
 <header class="main-header">
         <!-- In Header -->
 <div class="logo-container">
-    <img src="/assets/image/Logo.png" alt="Lingunan Fitness Gym" class="logo-img">
+    <img src="/../assets/image/Logo.png" alt="Lingunan Fitness Gym" class="logo-img">
     <div class="logo-text">Lingunan<span>FitnessGym</span></div>
 </div>
 
@@ -22,7 +22,7 @@
                     strpos($_SERVER['SCRIPT_NAME'], '/client/index.php') !== false
                 ))
             ): ?>
-                <a href="/public/member/index.php" class="btn-cta">Login</a>
+                <a href="/../public/member/index.php" class="btn-cta">Login</a>
             <?php endif; ?>
             <div class="hamburger" id="hamburger">
                 <div></div>
