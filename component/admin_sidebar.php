@@ -18,15 +18,6 @@ $currentFile = isset($page) ? $page : basename($_SERVER['PHP_SELF']);
 <div id="loading-overlay" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(30,30,30,0.7);z-index:9999;align-items:center;justify-content:center;">
   <div style="color:#fff;font-size:2rem;">Loading...</div>
 </div>
-<button class="sidebar-toggle" id="sidebarToggle" aria-label="Open sidebar" style="position:fixed;top:15px;left:200px;z-index:1001;background:none;border:none;outline:none;cursor:pointer;display:none;">
-  <span id="sidebarToggleIcon">
-    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="28" height="28" rx="8" />
-      <path d="M10 8L16 14L10 20" stroke="#FFD900" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M14 8L20 14L14 20" stroke="#ffd000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-  </span>
-</button>
 <div class="sidebar-backdrop" id="sidebarBackdrop" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.3);z-index:1000;"></div>
 <aside class="sidebar">
   <div class="sidebar-section">
@@ -237,8 +228,6 @@ $currentFile = isset($page) ? $page : basename($_SERVER['PHP_SELF']);
   // Sidebar loading overlay and responsive toggle
   document.addEventListener('DOMContentLoaded', function() {
     var sidebar = document.querySelector('.sidebar');
-    var toggle = document.getElementById('sidebarToggle');
-    var backdrop = document.getElementById('sidebarBackdrop');
     // Show loading overlay on sidebar link click
     if (sidebar) {
       sidebar.querySelectorAll('a').forEach(function(link) {
@@ -249,58 +238,6 @@ $currentFile = isset($page) ? $page : basename($_SERVER['PHP_SELF']);
         });
       });
     }
-    // Responsive sidebar toggle
-    function updateSidebarToggle() {
-      if (window.innerWidth <= 900) {
-        if (toggle) toggle.style.display = 'block';
-        if (sidebar) sidebar.classList.remove('open');
-        if (backdrop) backdrop.style.display = 'none';
-      } else {
-        if (toggle) toggle.style.display = 'none';
-        if (sidebar) sidebar.classList.remove('open');
-        if (backdrop) backdrop.style.display = 'none';
-      }
-    }
-    if (toggle && sidebar && backdrop) {
-      toggle.addEventListener('click', function() {
-        sidebar.classList.toggle('open');
-        if (sidebar.classList.contains('open')) {
-         
-          toggle.setAttribute('aria-label', 'Close sidebar');
-          document.getElementById('sidebarToggleIcon').innerHTML = `
-            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="28" height="28" rx="8" />
-              <path d="M18 8L12 14L18 20" stroke="#FFD900" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M14 8L8 14L14 20" stroke="#FFD900" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          `;
-        } else {
-          backdrop.style.display = 'none';
-          toggle.setAttribute('aria-label', 'Open sidebar');
-          document.getElementById('sidebarToggleIcon').innerHTML = `
-            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="28" height="28" rx="8" />
-              <path d="M10 8L16 14L10 20" stroke="#FFD900" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M14 8L20 14L14 20" stroke="#FFD900" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          `;
-        }
-      });
-      backdrop.addEventListener('click', function() {
-        sidebar.classList.remove('open');
-        backdrop.style.display = 'none';
-        toggle.setAttribute('aria-label', 'Open sidebar');
-        document.getElementById('sidebarToggleIcon').innerHTML = `
-          <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="28" height="28" rx="8" />
-            <path d="M10 8L16 14L10 20" stroke="#FFD900" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M14 8L20 14L14 20" stroke="#FFD900" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        `;
-      });
-    }
-    window.addEventListener('resize', updateSidebarToggle);
-    updateSidebarToggle();
 
     // ── Logout confirmation modal ──────────────────────────────────────────
     var logoutBtn    = document.getElementById('logoutBtn');
