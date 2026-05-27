@@ -1,4 +1,5 @@
 <?php
+date_default_timezone_set('Asia/Manila');
 // Database connection for dbgym
 $host = 'sql201.infinityfree.com';
 $db   = 'if0_41655270_dbgym';
