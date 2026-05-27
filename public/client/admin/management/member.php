@@ -246,6 +246,19 @@ include '../../../../component/admin_sidebar.php';
     .action-btn:hover {
         text-decoration: underline;
     }
+    .action-group {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+    }
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 62px;
+        padding: 6px 10px;
+    }
     .admin-table th:nth-child(1){width:18%;}
     .admin-table th:nth-child(2){width:20%;}
     .admin-table th:nth-child(3){width:9%;}
@@ -259,18 +272,77 @@ include '../../../../component/admin_sidebar.php';
     .table-wrapper {
         overflow-x: auto;
         width: 100%;
+        -webkit-overflow-scrolling: touch;
     }
-    @media (max-width: 700px) {
+    .admin-table {
+        
+        word-break: break-word;
+    }
+    .admin-table th,
+    .admin-table td {
+        min-width: 0;
+    }
+    @media (max-width: 900px) {
         #searchUsername { width: 100% !important; box-sizing: border-box; }
-        .admin-table { min-width: 600px; }
+        .admin-table th,
+        .admin-table td { padding: 10px 8px; font-size: 14px; }
+    }
+    @media (max-width: 760px) {
+        .admin-table { min-width: 100%; }
     }
     /* Mobile stacked table */
     @media (max-width: 600px) {
+        .table-wrapper { overflow-x: hidden; }
         .admin-table { min-width: 0; }
         .admin-table thead { display: none; }
-        .admin-table tbody tr { display: block; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.03); border-radius: 8px; padding: 8px; background: #1b1b1b; }
-        .admin-table tbody td { display: flex; justify-content: space-between; padding: 8px 10px; border-bottom: none; white-space: normal; }
-        .admin-table tbody td::before { content: attr(data-label); color: #f5c518; font-weight: 700; margin-right: 8px; width: 110px; flex: 0 0 110px; }
+        .admin-table tbody tr {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 6px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 10px;
+            background: #1b1b1b;
+        }
+        .admin-table tbody td {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 8px;
+            border: none;
+            white-space: normal;
+            flex-wrap: wrap;
+        }
+        .admin-table tbody td::before {
+            content: attr(data-label);
+            color: #f5c518;
+            font-weight: 700;
+            margin-right: 8px;
+            width: auto;
+            min-width: 80px;
+        }
+        .admin-table tbody td:last-child { justify-content: flex-end; }
+        .admin-table tbody td span,
+        .admin-table tbody td button,
+        .admin-table tbody td .badge-status,
+        .admin-table tbody td .action-btn { max-width: 100%; }
+        .admin-table tbody td[data-label="Actions"] {
+            display: block;
+            padding: 10px 8px 6px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .admin-table tbody td[data-label="Actions"]::before {
+            display: block;
+            margin-bottom: 6px;
+        }
+        .admin-table tbody td[data-label="Actions"] .action-group {
+            justify-content: flex-end;
+            gap: 8px;
+        }
+       
     }
     /* Modal */
     .modal-overlay {
@@ -371,8 +443,8 @@ include '../../../../component/admin_sidebar.php';
     /* Member stat chips */
     .member-stats { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px; }
     .ms-chip {
-        display:flex; align-items:center; gap:8px;
-        background:#1e1e1e; border-radius:8px; padding:9px 18px;
+        display:flex; gap:8px;
+        background:#1e1e1e; border-radius:8px; 
         font-size:13px; font-weight:600; border:1px solid #2a2a2a;
     }
     .ms-dot { width:10px; height:10px; border-radius:50%; display:inline-block; flex-shrink:0; }
@@ -500,18 +572,20 @@ try {
                             <td data-label="RFID"><?= htmlspecialchars($member['RFID'] ?? '-') ?></td>
                             <td data-label="Joined Date"><?= htmlspecialchars($joined) ?></td>
                             <td data-label="Actions">
-                                <button type="button" class="action-btn btn-edit-member"
-                                    data-id="<?= $member['id'] ?>"
-                                    data-first="<?= htmlspecialchars($member['first_name'], ENT_QUOTES) ?>"
-                                    data-last="<?= htmlspecialchars($member['last_name'], ENT_QUOTES) ?>"
-                                    data-gmail="<?= htmlspecialchars($member['gmail'] ?? '', ENT_QUOTES) ?>"
-                                    data-phone="<?= htmlspecialchars($member['phone'] ?? '', ENT_QUOTES) ?>"
-                                    data-address="<?= htmlspecialchars($member['address'] ?? '', ENT_QUOTES) ?>"
-                                    data-rfid="<?= htmlspecialchars($member['RFID'] ?? '', ENT_QUOTES) ?>"
-                                    data-type="<?= htmlspecialchars($member['type'], ENT_QUOTES) ?>">Edit</button>
-                                <button type="button" class="action-btn delete btn-delete-member"
-                                    data-id="<?= $member['id'] ?>"
-                                    data-name="<?= htmlspecialchars(trim($member['first_name'].' '.$member['last_name']), ENT_QUOTES) ?>">Delete</button>
+                                <div class="action-group">
+                                    <button type="button" class="action-btn btn-edit-member"
+                                        data-id="<?= $member['id'] ?>"
+                                        data-first="<?= htmlspecialchars($member['first_name'], ENT_QUOTES) ?>"
+                                        data-last="<?= htmlspecialchars($member['last_name'], ENT_QUOTES) ?>"
+                                        data-gmail="<?= htmlspecialchars($member['gmail'] ?? '', ENT_QUOTES) ?>"
+                                        data-phone="<?= htmlspecialchars($member['phone'] ?? '', ENT_QUOTES) ?>"
+                                        data-address="<?= htmlspecialchars($member['address'] ?? '', ENT_QUOTES) ?>"
+                                        data-rfid="<?= htmlspecialchars($member['RFID'] ?? '', ENT_QUOTES) ?>"
+                                        data-type="<?= htmlspecialchars($member['type'], ENT_QUOTES) ?>">Edit</button>
+                                    <button type="button" class="action-btn delete btn-delete-member"
+                                        data-id="<?= $member['id'] ?>"
+                                        data-name="<?= htmlspecialchars(trim($member['first_name'].' '.$member['last_name']), ENT_QUOTES) ?>">Delete</button>
+                                </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>
