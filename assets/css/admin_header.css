@@ -46,10 +46,11 @@
 }
 .dashboard-header .user-info {
   display: flex;
+  
   align-items: center;
   gap: 10px;
-  background: #333;
-  padding: 6px 16px;
+  
+  
   border-radius: 20px;
 }
 .dashboard-header .user-info .user-icon {
@@ -76,6 +77,26 @@
   -webkit-text-fill-color: transparent;
   font-weight: 800;
 }
+@media (max-width: 900px) {
+  .dashboard-header .user-name {
+    display: none;
+  }
+  .dashboard-header .notif {
+    font-size: 1.4rem;
+  }
+  .notif-dropdown {
+    width: 280px !important;
+  }
+  .notif-list {
+    max-height: 300px !important;
+  }
+  .notif-item-title {
+    font-size: 12px !important;
+  }
+  .notif-item-sub {
+    font-size: 10px !important;
+  }
+}
 @media (max-width: 600px) {
   .dashboard-header {
     display: flex;
@@ -85,7 +106,38 @@
   }
   .dashboard-header .header-actions {
     margin-top: 0.5rem;
-    gap: 15px;
+    gap: 12px;
+  }
+  .dashboard-header .notif {
+    font-size: 1.2rem;
+  }
+  .notif-dropdown {
+    width: 240px !important;
+    right: -5px !important;
+  }
+  .notif-list {
+    max-height: 250px !important;
+  }
+  .notif-dropdown-header {
+    padding: 10px 12px 8px !important;
+  }
+  .notif-dropdown-header span {
+    font-size: 11px !important;
+  }
+  .notif-item {
+    padding: 8px 12px !important;
+    gap: 8px !important;
+  }
+  .notif-item-icon {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 12px !important;
+  }
+  .notif-item-title {
+    font-size: 11px !important;
+  }
+  .notif-item-sub {
+    font-size: 9px !important;
   }
   .logo-text {
     font-size: 1.35rem;

@@ -101,35 +101,12 @@ $_notifCount = count($_notifications);
     text-align: center; padding: 30px 16px; color: #444; font-size: 13px;
 }
 .notif-empty span { display: block; font-size: 2rem; margin-bottom: 8px; }
-.sidebar-toggle {
-    position: fixed;
-    top: 15px;
-    left: 200px;
-    z-index: 1001;
-    background: none;
-    border: none;
-    outline: none;
-    cursor: pointer;
-    display: none;
-}
-.sidebar-toggle span {
-    display: inline-block;
-}
 </style>
 <div class="dashboard-header">
   <div class="logo">
     <div class="logo-img"></div>
     <div class="logo-text">Lingunan<span>FitnessGym</span></div>
   </div>
-  <button class="sidebar-toggle" id="sidebarToggle" aria-label="Open sidebar">
-    <span id="sidebarToggleIcon">
-      <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="28" height="28" rx="8" />
-        <path d="M10 8L16 14L10 20" stroke="#FFD900" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M14 8L20 14L14 20" stroke="#ffd000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </span>
-  </button>
   <div class="header-actions">
     <!-- Notification bell -->
     <div class="notif-wrap" id="notifWrap">
@@ -173,78 +150,15 @@ $_notifCount = count($_notifications);
 (function(){
     var bell     = document.getElementById('notifBell');
     var dropdown = document.getElementById('notifDropdown');
-    if (bell && dropdown) {
-        bell.addEventListener('click', function(e){
-            e.stopPropagation();
-            dropdown.classList.toggle('open');
-        });
-        document.addEventListener('click', function(e){
-            if (!document.getElementById('notifWrap').contains(e.target)) {
-                dropdown.classList.remove('open');
-            }
-        });
-    }
-
-    var toggle   = document.getElementById('sidebarToggle');
-    var sidebar  = document.querySelector('.sidebar');
-    var backdrop = document.getElementById('sidebarBackdrop');
-
-    function updateSidebarToggle() {
-        if (!toggle || !sidebar) return;
-        if (window.innerWidth <= 900) {
-            toggle.style.display = 'block';
-            sidebar.classList.remove('open');
-            if (backdrop) backdrop.style.display = 'none';
-        } else {
-            toggle.style.display = 'none';
-            sidebar.classList.remove('open');
-            if (backdrop) backdrop.style.display = 'none';
+    if (!bell || !dropdown) return;
+    bell.addEventListener('click', function(e){
+        e.stopPropagation();
+        dropdown.classList.toggle('open');
+    });
+    document.addEventListener('click', function(e){
+        if (!document.getElementById('notifWrap').contains(e.target)) {
+            dropdown.classList.remove('open');
         }
-    }
-
-    if (toggle && sidebar) {
-        toggle.addEventListener('click', function() {
-            sidebar.classList.toggle('open');
-            if (sidebar.classList.contains('open')) {
-                if (backdrop) backdrop.style.display = 'block';
-                toggle.setAttribute('aria-label', 'Close sidebar');
-                document.getElementById('sidebarToggleIcon').innerHTML = `
-                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <rect width="28" height="28" rx="8" />
-                      <path d="M18 8L12 14L18 20" stroke="#FFD900" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M14 8L8 14L14 20" stroke="#FFD900" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                `;
-            } else {
-                if (backdrop) backdrop.style.display = 'none';
-                toggle.setAttribute('aria-label', 'Open sidebar');
-                document.getElementById('sidebarToggleIcon').innerHTML = `
-                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <rect width="28" height="28" rx="8" />
-                      <path d="M10 8L16 14L10 20" stroke="#FFD900" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M14 8L20 14L14 20" stroke="#FFD900" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                `;
-            }
-        });
-    }
-
-    if (backdrop && sidebar && toggle) {
-        backdrop.addEventListener('click', function() {
-            sidebar.classList.remove('open');
-            backdrop.style.display = 'none';
-            toggle.setAttribute('aria-label', 'Open sidebar');
-            document.getElementById('sidebarToggleIcon').innerHTML = `
-                <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="28" height="28" rx="8" />
-                  <path d="M10 8L16 14L10 20" stroke="#FFD900" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M14 8L20 14L14 20" stroke="#FFD900" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            `;
-        });
-    }
-
-    window.addEventListener('resize', updateSidebarToggle);
-    updateSidebarToggle();
+    });
 })();
 </script>
