@@ -1,10 +1,10 @@
 <?php
 date_default_timezone_set('Asia/Manila');
 // Database connection for dbgym
-$host = 'localhost';
-$db   = 'dbgym';
-$user = 'root'; // Change if your MySQL user is different
-$pass = '';
+$host = 'sql201.infinityfree.com';
+$db   = 'if0_41655270_dbgym';
+$user = 'if0_41655270'; 
+$pass = '6IdBOGd4gag';
 $charset = 'utf8mb4';
 
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
