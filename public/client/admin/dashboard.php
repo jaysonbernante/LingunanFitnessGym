@@ -2,6 +2,8 @@
 require_once '../../../app/config/connection.php';
 require_once '../../../component/session_check.php';
 
+date_default_timezone_set('Asia/Manila');
+
 $page = 'dashboard';
 
 $toast = '';
