@@ -275,7 +275,7 @@ include '../../../../component/admin_sidebar.php';
         -webkit-overflow-scrolling: touch;
     }
     .admin-table {
-        
+        table-layout: fixed;
         word-break: break-word;
     }
     .admin-table th,
@@ -342,7 +342,11 @@ include '../../../../component/admin_sidebar.php';
             justify-content: flex-end;
             gap: 8px;
         }
-       
+        .admin-table tbody td[data-label="Actions"] .action-btn {
+            flex: 1 1 auto;
+            min-width: 100px;
+            padding: 8px 10px;
+        }
     }
     /* Modal */
     .modal-overlay {
@@ -443,8 +447,8 @@ include '../../../../component/admin_sidebar.php';
     /* Member stat chips */
     .member-stats { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px; }
     .ms-chip {
-        display:flex; gap:8px;
-        background:#1e1e1e; border-radius:8px; 
+        display:flex; align-items:center; gap:8px;
+        background:#1e1e1e; border-radius:8px; padding:9px 18px;
         font-size:13px; font-weight:600; border:1px solid #2a2a2a;
     }
     .ms-dot { width:10px; height:10px; border-radius:50%; display:inline-block; flex-shrink:0; }
