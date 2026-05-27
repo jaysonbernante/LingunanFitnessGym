@@ -1,0 +1,95 @@
+/* admin_header.css - Styles for the admin header component */
+.dashboard-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #181818;
+  padding: 0.7rem 2rem;
+  height: 60px;
+  border-bottom: 2px solid #333;
+}
+.dashboard-header .logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.dashboard-header .logo-img {
+  width: 38px;
+  height: 38px;
+  background-image: url('../../assets/image/Logo.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  display: inline-block;
+}
+.dashboard-header .logo-text {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -1px;
+  text-transform: uppercase;
+}
+.dashboard-header .header-actions {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+}
+.dashboard-header .notif {
+  font-size: 1.7rem;
+  color: #ffd900;
+  cursor: pointer;
+}
+.dashboard-header .user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #333;
+  padding: 6px 16px;
+  border-radius: 20px;
+}
+.dashboard-header .user-info .user-icon {
+  background: #ffd900;
+  color: #222;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  font-weight: bold;
+}
+.dashboard-header .user-info .user-name {
+  font-size: 1rem;
+  color: #fff;
+  font-weight: 600;
+}
+.logo-text span {
+  background: linear-gradient(to bottom, #ffd900 0%, #ffffff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 800;
+}
+@media (max-width: 600px) {
+  .dashboard-header {
+    display: flex;
+    align-items: flex-start;
+    padding: 0.7rem 1rem;
+    height: auto;
+  }
+  .dashboard-header .header-actions {
+    margin-top: 0.5rem;
+    gap: 15px;
+  }
+  .logo-text {
+    font-size: 1.35rem;
+    display: flex;
+    flex-direction: column;
+  }
+}

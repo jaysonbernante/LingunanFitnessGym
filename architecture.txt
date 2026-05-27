@@ -1,0 +1,85 @@
+LingunanFitnessGym
+│   app
+│   ├── api
+│   └── config
+│       └── connection.php
+│   assets
+│   ├── css
+│   │   ├── admin_header.css
+│   │   ├── admin_sidebar.css
+│   │   ├── admin.css
+│   │   ├── footerComponents.css
+│   │   ├── headerComponent.css
+│   │   ├── landing-page.css
+│   │   ├── login.css
+│   │   └── toastednotif.css
+│   ├── ico
+│   │   ├── dashboard_active.png
+│   │   ├── dashboard.png
+│   │   ├── member_active.png
+│   │   ├── member.png
+│   │   ├── wallet_active.png
+│   │   └── wallet.png
+│   ├── image
+│   │   ├── products
+│   │   │   ├── prod_1776096467_4347be79.png
+│   │   │   ├── prod_1776182377_a1ea986e.png
+│   │   │   └── prod_1776262814_8334df77.jpg
+│   │   ├── card.png
+│   │   ├── gallerybackground.jpg
+│   │   ├── hero-background.jpg
+│   │   ├── location.png
+│   │   ├── Logo.png
+│   │   └── Man.png
+│   └── js
+│       └── landing-page.js
+│   backups
+│   ├── backup_date_2026-04-07_20260415_162711.sql
+│   └── backup_full_20260415_162622.sql
+│   component
+│   ├── admin_header.php
+│   ├── admin_sidebar.php
+│   ├── landingPage-footer.php
+│   ├── landingPage-header.php
+│   └── staff_sidebar.php
+│   database
+│   ├── dbgym.sql
+│   └── revenue-report-2026.pdf
+│   public
+│   ├── client
+│   │   ├── admin
+│   │   │   ├── management
+│   │   │   │   ├── member.php
+│   │   │   │   ├── report.php
+│   │   │   │   ├── staff.php
+│   │   │   │   ├── visitorLog.php
+│   │   │   │   └── wallet.php
+│   │   │   └── system
+│   │   │       ├── backup.php
+│   │   │       ├── Ecommerce.php
+│   │   │       ├── entryLog.php
+│   │   │       ├── revenue.php
+│   │   │       └── RFID.php
+│   │   ├── staff
+│   │   │   ├── management
+│   │   │   │   ├── member.php
+│   │   │   │   ├── transaction.php
+│   │   │   │   ├── visitorLog.php
+│   │   │   │   └── wallet.php
+│   │   │   ├── system
+│   │   │   │   ├── Ecommerce.php
+│   │   │   │   └── RFID.php
+│   │   │   └── dashboard.php
+│   │   ├── dashboard.php
+│   │   ├── index.php
+│   │   ├── login.php
+│   │   ├── logout.php
+│   │   └── management_member.php
+│   └── member
+│       ├── dashboard.php
+│       ├── index.php
+│       └── login.php
+│   architecture.txt
+│   connection.txt
+│   index.php
+│   test.php
