@@ -2,7 +2,7 @@
 // Database connection for dbgym
 $host = 'sql201.infinityfree.com';
 $db   = 'if0_41655270_dbgym';
-$user = 'if0_41655270'; // Change if your MySQL user is different
+$user = 'if0_41655270'; 
 $pass = '6IdBOGd4gag';
 $charset = 'utf8mb4';
 
