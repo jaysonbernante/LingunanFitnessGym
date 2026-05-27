@@ -8,10 +8,10 @@
         <nav class="nav-menu" id="navMenu">
             <div class="close-btn" id="closeBtn">&times;</div>
             <ul>
-                <li><a href="#home">Home</a></li>
-                <li><a href="#membership">Membership</a></li>
-                <li><a href="#gallery">Gallery</a></li>
-                <li><a href="#about">About Us</a></li>
+                <li><a href="/index.php#home">Home</a></li>
+                <li><a href="/index.php#membership">Membership</a></li>
+                <li><a href="/index.php#gallery">Gallery</a></li>
+                <li><a href="/index.php#about">About Us</a></li>
             </ul>
         </nav>
 
