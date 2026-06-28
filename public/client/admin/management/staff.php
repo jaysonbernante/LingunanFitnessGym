@@ -154,6 +154,16 @@ include '../../../../component/admin_sidebar.php';
 
         // One-time migration: add status column if not exists
         try { $pdo->exec("ALTER TABLE users ADD COLUMN status VARCHAR(10) NOT NULL DEFAULT 'active'"); } catch (Exception $e) {}
+        try { $pdo->exec("CREATE TABLE IF NOT EXISTS staff_archive (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            username VARCHAR(100) NOT NULL,
+            email VARCHAR(255) DEFAULT NULL,
+            role VARCHAR(50) NOT NULL,
+            archived_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            archived_by VARCHAR(100) DEFAULT NULL,
+            reason VARCHAR(255) DEFAULT 'archived'
+        )"); } catch (Exception $e) {}
 
         // Handle Add Staff
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_staff'])) {
@@ -197,10 +207,69 @@ include '../../../../component/admin_sidebar.php';
             exit;
         }
 
-        // Handle Delete (super_admin rows are protected)
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
-            $deleteId = intval($_POST['delete_id']);
-            $pdo->prepare("DELETE FROM users WHERE id = ? AND role != 'super_admin'")->execute([$deleteId]);
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['handle_reset_request'])) {
+            $requestId = intval($_POST['request_id'] ?? 0);
+            $action = $_POST['reset_action'] ?? 'approve';
+            $adminName = $_SESSION['user_name'] ?? 'admin';
+
+            if ($requestId > 0) {
+                $request = $pdo->prepare("SELECT user_id FROM password_reset_requests WHERE id = ? LIMIT 1");
+                $request->execute([$requestId]);
+                $resetReq = $request->fetch(PDO::FETCH_ASSOC);
+
+                if ($resetReq) {
+                    if ($action === 'approve') {
+                        $pdo->prepare("UPDATE users SET status = 'active', locked_until = NULL, failed_login_attempts = 0, password_reset_required = 0 WHERE id = ?")
+                            ->execute([$resetReq['user_id']]);
+                    } else {
+                        $pdo->prepare("UPDATE users SET status = 'active', password_reset_required = 0 WHERE id = ?")
+                            ->execute([$resetReq['user_id']]);
+                    }
+
+                    $pdo->prepare("UPDATE password_reset_requests SET status = ?, handled_by = ?, handled_at = NOW() WHERE id = ?")
+                        ->execute([$action === 'approve' ? 'approved' : 'rejected', $adminName, $requestId]);
+                }
+            }
+            echo "<meta http-equiv='refresh' content='0'>";
+            exit;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['unlock_account_id'])) {
+            $unlockId = intval($_POST['unlock_account_id']);
+            $pdo->prepare("UPDATE users SET failed_login_attempts = 0, locked_until = NULL, status = 'active', password_reset_required = 0 WHERE id = ? AND role = 'staff'")
+                ->execute([$unlockId]);
+            echo "<meta http-equiv='refresh' content='0'>";
+            exit;
+        }
+
+        // Handle Archive (super_admin rows are protected)
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['archive_id'])) {
+            $archiveId = intval($_POST['archive_id']);
+            $adminName = $_SESSION['user_name'] ?? 'admin';
+            $staff = $pdo->prepare("SELECT id, username, email, role FROM users WHERE id = ? AND role != 'super_admin' LIMIT 1");
+            $staff->execute([$archiveId]);
+            $staffRow = $staff->fetch(PDO::FETCH_ASSOC);
+
+            if ($staffRow) {
+                $pdo->prepare("INSERT INTO staff_archive (user_id, username, email, role, archived_at, archived_by, reason) VALUES (?, ?, ?, ?, NOW(), ?, 'archived')")
+                    ->execute([$staffRow['id'], $staffRow['username'], $staffRow['email'], $staffRow['role'], $adminName]);
+                $pdo->prepare("DELETE FROM users WHERE id = ? AND role != 'super_admin'")->execute([$archiveId]);
+            }
+            echo "<meta http-equiv='refresh' content='0'>";
+            exit;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['recover_archive_id'])) {
+            $archiveId = intval($_POST['recover_archive_id']);
+            $archive = $pdo->prepare("SELECT * FROM staff_archive WHERE id = ? LIMIT 1");
+            $archive->execute([$archiveId]);
+            $archiveRow = $archive->fetch(PDO::FETCH_ASSOC);
+
+            if ($archiveRow) {
+                $pdo->prepare("INSERT INTO users (username, email, role, password, status, created_at) VALUES (?, ?, ?, ?, 'active', NOW())")
+                    ->execute([$archiveRow['username'], $archiveRow['email'], $archiveRow['role'], password_hash('12345fitness', PASSWORD_DEFAULT)]);
+                $pdo->prepare("DELETE FROM staff_archive WHERE id = ?")->execute([$archiveId]);
+            }
             echo "<meta http-equiv='refresh' content='0'>";
             exit;
         }
@@ -223,9 +292,16 @@ include '../../../../component/admin_sidebar.php';
             $stmt = $pdo->prepare($query);
             $stmt->execute($params);
             $staffList = $stmt->fetchAll();
+
+            $reqStmt = $pdo->query("SELECT * FROM password_reset_requests ORDER BY created_at DESC");
+            $resetRequests = $reqStmt->fetchAll();
+            $archiveStmt = $pdo->query("SELECT * FROM staff_archive ORDER BY archived_at DESC");
+            $archiveList = $archiveStmt->fetchAll();
         } catch (Exception $e) {
             echo '<div style="color:red">Error: ' . htmlspecialchars($e->getMessage()) . '</div>';
             $staffList = [];
+            $resetRequests = [];
+            $archiveList = [];
         }
         ?>
 
@@ -244,6 +320,94 @@ include '../../../../component/admin_sidebar.php';
                     + Add Staff
                 </button>
             </div>
+        </div>
+
+        <div style="margin-top:24px; background:#2b2b2b; padding:16px; border-radius:14px;">
+            <h3 style="margin:0 0 12px; color:#fff;">Password Reset Requests</h3>
+            <?php if (empty($resetRequests)): ?>
+                <p style="margin:0; color:#bbb;">No staff password reset requests right now.</p>
+            <?php else: ?>
+                <div class="table-wrapper">
+                    <table class="admin-table" style="background:#262626;">
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Reason</th>
+                                <th>Status</th>
+                                <th>Requested</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach ($resetRequests as $request): ?>
+                            <tr>
+                                <td data-label="Username"><?= htmlspecialchars($request['username']) ?></td>
+                                <td data-label="Reason"><?= htmlspecialchars($request['reason'] ?? '-') ?></td>
+                                <td data-label="Status"><?= htmlspecialchars($request['status']) ?></td>
+                                <td data-label="Requested"><?= htmlspecialchars($request['created_at']) ?></td>
+                                <td data-label="Action">
+                                    <?php if ($request['status'] === 'pending'): ?>
+                                        <form method="post" style="display:inline;">
+                                            <input type="hidden" name="handle_reset_request" value="1">
+                                            <input type="hidden" name="request_id" value="<?= $request['id'] ?>">
+                                            <input type="hidden" name="reset_action" value="approve">
+                                            <button type="submit" class="action-btn" style="color:#43a047;">Approve</button>
+                                        </form>
+                                        <form method="post" style="display:inline;">
+                                            <input type="hidden" name="handle_reset_request" value="1">
+                                            <input type="hidden" name="request_id" value="<?= $request['id'] ?>">
+                                            <input type="hidden" name="reset_action" value="reject">
+                                            <button type="submit" class="action-btn delete">Reject</button>
+                                        </form>
+                                    <?php else: ?>
+                                        <span style="color:#aaa;">Handled</span>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <div style="margin-top:24px; background:#2b2b2b; padding:16px; border-radius:14px;">
+            <h3 style="margin:0 0 12px; color:#fff;">Archived Staff History</h3>
+            <?php if (empty($archiveList)): ?>
+                <p style="margin:0; color:#bbb;">No archived staff accounts.</p>
+            <?php else: ?>
+                <div class="table-wrapper">
+                    <table class="admin-table" style="background:#262626;">
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Archived At</th>
+                                <th>Archived By</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach ($archiveList as $archive): ?>
+                            <tr>
+                                <td data-label="Username"><?= htmlspecialchars($archive['username']) ?></td>
+                                <td data-label="Email"><?= htmlspecialchars($archive['email'] ?? '-') ?></td>
+                                <td data-label="Role"><?= htmlspecialchars($archive['role']) ?></td>
+                                <td data-label="Archived At"><?= htmlspecialchars($archive['archived_at']) ?></td>
+                                <td data-label="Archived By"><?= htmlspecialchars($archive['archived_by'] ?? '-') ?></td>
+                                <td data-label="Action">
+                                    <form method="post" style="display:inline;">
+                                        <input type="hidden" name="recover_archive_id" value="<?= $archive['id'] ?>">
+                                        <button type="submit" class="action-btn" style="color:#43a047;">Recover</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
         </div>
 
         <!-- Table -->
@@ -307,9 +471,15 @@ include '../../../../component/admin_sidebar.php';
                                             <?= ($staff['status'] ?? 'active') === 'active' ? 'Deactivate' : 'Activate' ?>
                                         </button>
                                     </form>
-                                    <form method="post" action="" style="display:inline" onsubmit="return confirm('Delete this staff member?');">
-                                        <input type="hidden" name="delete_id" value="<?= $staff['id'] ?>">
-                                        <button type="submit" class="action-btn delete">Delete</button>
+                                    <?php if (!empty($staff['locked_until']) && strtotime($staff['locked_until']) > time()): ?>
+                                        <form method="post" action="" style="display:inline">
+                                            <input type="hidden" name="unlock_account_id" value="<?= $staff['id'] ?>">
+                                            <button type="submit" class="action-btn" style="color:#f57c00;">Unlock</button>
+                                        </form>
+                                    <?php endif; ?>
+                                    <form method="post" action="" style="display:inline" onsubmit="return confirm('Archive this staff member?');">
+                                        <input type="hidden" name="archive_id" value="<?= $staff['id'] ?>">
+                                        <button type="submit" class="action-btn delete">Archive</button>
                                     </form>
                                 <?php else: ?>
                                     <span style="color:#666; font-size:13px;">—</span>

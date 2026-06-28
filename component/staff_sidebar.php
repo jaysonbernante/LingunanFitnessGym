@@ -1,14 +1,10 @@
 <?php
 // component/staff_sidebar.php
-// Dynamically determine base path for sidebar links
-$currentDir = basename(dirname($_SERVER['PHP_SELF']));
-$basePath = '';
-$logoutPath = '';
+require_once __DIR__ . '/session_check.php';
+// Use absolute paths so sidebar links and logout work correctly from any staff page
+$basePath = '/LingunanFitnessGym/public/client/staff/';
+$logoutPath = '/LingunanFitnessGym/public/client/logout.php';
 $iconPath = '../../../assets/ico/';
-if ($currentDir === 'management' || $currentDir === 'system') {
-    $basePath = '../../../client/staff/';
-    $logoutPath = '../../../client/logout.php';
-}
 $currentFile = isset($page) ? $page : basename($_SERVER['PHP_SELF']);
 ?>
 <div id="loading-overlay" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(30,30,30,0.7);z-index:9999;align-items:center;justify-content:center;">

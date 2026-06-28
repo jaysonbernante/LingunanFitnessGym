@@ -22,7 +22,7 @@
                     strpos($_SERVER['SCRIPT_NAME'], '/client/index.php') !== false
                 ))
             ): ?>
-                <a href="/../public/member/index.php" class="btn-cta">Login</a>
+                <a href="/LingunanFitnessGym/public/member/index.php" class="btn-cta">Login</a>
             <?php endif; ?>
             <div class="hamburger" id="hamburger">
                 <div></div>

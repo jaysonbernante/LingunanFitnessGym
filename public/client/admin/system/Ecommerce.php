@@ -185,18 +185,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_delete_product']
 if (isset($_GET['ajax_sale_history'])) {
     header('Content-Type: application/json');
     $search = trim($_GET['search'] ?? '');
-    if ($search !== '') {
-        $like = '%' . $search . '%';
-        $stmt = $pdo->prepare("SELECT * FROM sales WHERE product_name LIKE ? OR COALESCE(member_name,'') LIKE ? OR COALESCE(transacted_by,'') LIKE ? ORDER BY sold_at DESC, id ASC LIMIT 500");
-        $stmt->execute([$like, $like, $like]);
-    } else {
-        $stmt = $pdo->query("SELECT * FROM sales ORDER BY sold_at DESC, id ASC LIMIT 500");
-    }
+    $stmt = $pdo->query("SELECT * FROM sales ORDER BY sold_at DESC, id ASC LIMIT 500");
     $rows = $stmt->fetchAll();
+
+    $filteredRows = $rows;
+    if ($search !== '') {
+        $needle = strtolower($search);
+        $filteredRows = [];
+        foreach ($rows as $row) {
+            $haystack = strtolower(trim(implode(' ', array_filter([
+                $row['product_name'] ?? '',
+                $row['member_name'] ?? '',
+                $row['transacted_by'] ?? '',
+                $row['transaction_id'] ?? '',
+                $row['payment_method'] ?? '',
+                $row['sold_at'] ?? ''
+            ]))));
+            if ($haystack !== '' && strpos($haystack, $needle) !== false) {
+                $filteredRows[] = $row;
+            }
+        }
+    }
+
     // Group by transaction_id (fallback: sold_at + transacted_by for old rows)
     $grouped = [];
     $order   = [];
-    foreach ($rows as $row) {
+    foreach ($filteredRows as $row) {
         $key = !empty($row['transaction_id']) ? $row['transaction_id'] : ($row['sold_at'] . '_' . $row['transacted_by']);
         if (!isset($grouped[$key])) {
             $grouped[$key] = [

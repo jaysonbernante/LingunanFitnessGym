@@ -12,7 +12,9 @@ LingunanFitnessGym
 │   │   ├── headerComponent.css
 │   │   ├── landing-page.css
 │   │   ├── login.css
-│   │   └── toastednotif.css
+│   │   ├── member.css
+│   │   ├── toastednotif.css
+│   │   └── visitorLog.css
 │   ├── ico
 │   │   ├── dashboard_active.png
 │   │   ├── dashboard.png
@@ -32,19 +34,25 @@ LingunanFitnessGym
 │   │   ├── Logo.png
 │   │   └── Man.png
 │   └── js
-│       └── landing-page.js
+│       ├── landing-page.js
+│       └── member-sidebar-toggle.js
 │   backups
 │   ├── backup_date_2026-04-07_20260415_162711.sql
-│   └── backup_full_20260415_162622.sql
+│   ├── backup_full_20260415_162622.sql
+│   ├── backup_full_20260428_114030.sql
+│   ├── backup_full_20260528_025900.sql
+│   └── dbgym.sql
 │   component
 │   ├── admin_header.php
 │   ├── admin_sidebar.php
 │   ├── landingPage-footer.php
 │   ├── landingPage-header.php
+│   ├── session_check.php
 │   └── staff_sidebar.php
 │   database
 │   ├── dbgym.sql
 │   └── revenue-report-2026.pdf
+│   docs
 │   public
 │   ├── client
 │   │   ├── admin
@@ -54,12 +62,15 @@ LingunanFitnessGym
 │   │   │   │   ├── staff.php
 │   │   │   │   ├── visitorLog.php
 │   │   │   │   └── wallet.php
-│   │   │   └── system
-│   │   │       ├── backup.php
-│   │   │       ├── Ecommerce.php
-│   │   │       ├── entryLog.php
-│   │   │       ├── revenue.php
-│   │   │       └── RFID.php
+│   │   │   ├── system
+│   │   │   │   ├── backup.php
+│   │   │   │   ├── Ecommerce.php
+│   │   │   │   ├── entryLog.php
+│   │   │   │   ├── revenue.php
+│   │   │   │   └── RFID.php
+│   │   │   └── dashboard.php
+│   │   ├── management
+│   │   │   └── report.php
 │   │   ├── staff
 │   │   │   ├── management
 │   │   │   │   ├── member.php
@@ -70,16 +81,25 @@ LingunanFitnessGym
 │   │   │   │   ├── Ecommerce.php
 │   │   │   │   └── RFID.php
 │   │   │   └── dashboard.php
-│   │   ├── dashboard.php
 │   │   ├── index.php
 │   │   ├── login.php
 │   │   ├── logout.php
 │   │   └── management_member.php
 │   └── member
+│       ├── attendance.php
 │       ├── dashboard.php
 │       ├── index.php
-│       └── login.php
+│       ├── login.php
+│       ├── logout.php
+│       ├── membership.php
+│       ├── payments.php
+│       ├── profile.php
+│       ├── session_check.php
+│       └── support.php
+│   .htaccess
+│   127_0_0_1.sql
 │   architecture.txt
 │   connection.txt
+│   dbgym.sql
 │   index.php
 │   test.php

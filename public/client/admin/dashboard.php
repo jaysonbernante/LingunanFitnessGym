@@ -301,7 +301,7 @@ foreach ($chartData as $dt => $cnt) {
         <div class="db-panel">
             <div class="db-panel-header">
                 <h3>&#128276; Recent Entries</h3>
-                <a href="visitorLog.php">View All</a>
+                <a href="../admin/management/visitorLog.php">View All</a>
             </div>
             <div class="db-panel-body">
                 <?php if (empty($recentEntries)): ?>

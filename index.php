@@ -113,27 +113,7 @@
                             </div>
                         </div>
 
-                        <div class="gallery-card reveal-pop">
-                            <img src="https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5"
-                                alt="Person running on treadmill">
-                            <div class="card-overlay">
-                                <h3>Cardio Zone</h3>
-                            </div>
-                        </div>
-                        <div class="gallery-card reveal-pop">
-                            <img src="https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5"
-                                alt="Person running on treadmill">
-                            <div class="card-overlay">
-                                <h3>Cardio Zone</h3>
-                            </div>
-                        </div>
-                        <div class="gallery-card reveal-pop">
-                            <img src="https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5"
-                                alt="Person running on treadmill">
-                            <div class="card-overlay">
-                                <h3>Cardio Zone</h3>
-                            </div>
-                        </div>
+            
                         <div class="gallery-card reveal-pop">
                             <img src="https://images.unsplash.com/photo-1574680096145-d05b474e2155"
                                 alt="Rows of dumbbells">

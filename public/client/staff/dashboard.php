@@ -1,8 +1,8 @@
 <?php
 require_once '../../../app/config/connection.php';
+require_once '../../../component/session_check.php';
 
 $page = 'dashboard';
-session_start();
 $toast = '';
 if (isset($_SESSION['login_success'])) {
     $toast = $_SESSION['login_success'];

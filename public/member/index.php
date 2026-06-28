@@ -1,5 +1,9 @@
 <?php
 session_start();
+if (isset($_SESSION['member_id'])) {
+  header('Location: dashboard.php');
+  exit();
+}
 $toast = '';
 if (isset($_SESSION['login_error'])) {
   $toast = $_SESSION['login_error'];
@@ -43,6 +47,7 @@ if (isset($_SESSION['login_error'])) {
         include "../../component/landingPage-footer.php";
     ?>
     <div id="toast" class="toast" style="display:none;"></div>
+    <script src="../../assets/js/landing-page.js"></script>
     <script>
       document.addEventListener('DOMContentLoaded', function() {
         var toastMsg = <?php echo json_encode($toast); ?>;

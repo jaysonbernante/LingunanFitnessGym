@@ -1,6 +1,6 @@
 <?php
 // component/admin_header.php
-if (session_status() === PHP_SESSION_NONE) session_start();
+require_once __DIR__ . '/session_check.php';
 
 $_displayName = htmlspecialchars($_SESSION['user_name'] ?? 'User');
 

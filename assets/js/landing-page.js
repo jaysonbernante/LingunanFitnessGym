@@ -1,84 +1,84 @@
-const sections = document.querySelectorAll('.hero-section, .membership-section, .gallery-section, .location-section');
-        const hamburger = document.getElementById('hamburger');
-        const navMenu = document.getElementById('navMenu');
-        const closeBtn = document.getElementById('closeBtn');
-        const overlay = document.getElementById('overlay');
-        window.addEventListener('load', () => {
+﻿document.addEventListener('DOMContentLoaded', () => {
+    const hamburger = document.getElementById('hamburger');
+    const navMenu = document.getElementById('navMenu');
+    const closeBtn = document.getElementById('closeBtn');
+    const overlay = document.getElementById('overlay');
 
-            document.body.classList.add('is-visible-nav');
+    function openMenu() {
+        if (!navMenu) return;
+        navMenu.classList.add('active');
+        if (overlay) {
+            overlay.classList.add('active');
+        }
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeMenu() {
+        if (!navMenu) return;
+        navMenu.classList.remove('active');
+        if (overlay) {
+            overlay.classList.remove('active');
+        }
+        document.body.style.overflow = '';
+    }
+
+    if (hamburger && navMenu) {
+        hamburger.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            openMenu();
         });
 
-
-        function openMenu() {
-            navMenu.classList.add('active');
-            overlay.classList.add('active');
-            document.body.style.overflow = 'hidden';
+        if (closeBtn) {
+            closeBtn.addEventListener('click', closeMenu);
         }
 
-        function closeMenu() {
-            navMenu.classList.remove('active');
-            overlay.classList.remove('active');
-            document.body.style.overflow = 'auto';
+        if (overlay) {
+            overlay.addEventListener('click', closeMenu);
         }
 
-        hamburger.addEventListener('click', openMenu);
-        closeBtn.addEventListener('click', closeMenu);
-        overlay.addEventListener('click', closeMenu);
-
-
-        document.querySelectorAll('.nav-menu a').forEach(link => {
+        document.querySelectorAll('.nav-menu a').forEach((link) => {
             link.addEventListener('click', closeMenu);
         });
+    }
 
+    const sections = document.querySelectorAll('.hero-section, .membership-section, .gallery-section, .location-section');
+    if (!sections.length) {
+        return;
+    }
 
+    document.body.classList.add('is-visible-nav');
 
-        const observerOptions = {
-            threshold: 0.2
-        };
-
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('is-visible');
-                } else {
-                    entry.target.classList.remove('is-visible');
-                }
-            });
-        }, {
-            threshold: 0.1
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('is-visible');
+            } else {
+                entry.target.classList.remove('is-visible');
+            }
         });
+    }, { threshold: 0.1 });
 
-        const heroSection = document.querySelector('.hero-section');
+    const heroSection = document.querySelector('.hero-section');
+    if (heroSection) {
         observer.observe(heroSection);
+    }
 
-        const heroObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('is-visible');
-                } else {
-                    entry.target.classList.remove('is-visible');
-                }
-            });
-        }, {
-            threshold: 0.25
-        });
+    document.querySelectorAll('.hero-section, .membership-section').forEach((section) => {
+        observer.observe(section);
+    });
 
-        heroObserver.observe(document.querySelector('.hero-section'));
+    sections.forEach((section) => {
+        observer.observe(section);
+    });
 
+    const grid = document.getElementById('cardGrid');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
 
-        document.querySelectorAll('.hero-section, .membership-section').forEach(section => {
-            observer.observe(section);
-        });
-
-        sections.forEach(section => {
-            observer.observe(section);
-        });
-
-        const grid = document.getElementById('cardGrid');
+    if (grid) {
         const cards = Array.from(grid.children);
-        const prevBtn = document.getElementById('prevBtn');
-        const nextBtn = document.getElementById('nextBtn');
-        cards.forEach(card => {
+        cards.forEach((card) => {
             const clone = card.cloneNode(true);
             grid.appendChild(clone);
         });
@@ -86,36 +86,24 @@ const sections = document.querySelectorAll('.hero-section, .membership-section, 
         let autoScrollTimer;
         const scrollAmount = 330;
 
-
-
-        nextBtn.addEventListener('click', () => {
-            grid.scrollBy({
-                left: scrollAmount,
-                behavior: 'smooth'
+        if (nextBtn) {
+            nextBtn.addEventListener('click', () => {
+                grid.scrollBy({ left: scrollAmount, behavior: 'smooth' });
             });
-        });
+        }
 
-        prevBtn.addEventListener('click', () => {
-            grid.scrollBy({
-                left: -scrollAmount,
-                behavior: 'smooth'
+        if (prevBtn) {
+            prevBtn.addEventListener('click', () => {
+                grid.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
             });
-        });
+        }
 
         function startAutoRotation() {
-            autoScrollTimer = setInterval(() => {
+            autoScrollTimer = window.setInterval(() => {
                 if (grid.scrollLeft >= grid.scrollWidth / 2) {
-                    grid.scrollTo({
-                        left: 0,
-                        behavior: 'auto'
-                    });
+                    grid.scrollTo({ left: 0, behavior: 'auto' });
                 }
-
-                grid.scrollBy({
-                    left: scrollAmount,
-                    behavior: 'smooth'
-                });
-
+                grid.scrollBy({ left: scrollAmount, behavior: 'smooth' });
             }, 3000);
         }
 
@@ -123,24 +111,14 @@ const sections = document.querySelectorAll('.hero-section, .membership-section, 
             clearInterval(autoScrollTimer);
         }
 
-
-        // --- AUTO-MOTION LOGIC ---
         let autoScroll;
 
         function startAutoScroll() {
-            autoScroll = setInterval(() => {
-
+            autoScroll = window.setInterval(() => {
                 if (grid.scrollLeft + grid.clientWidth >= grid.scrollWidth - 10) {
-                    grid.scrollTo({
-                        left: 0,
-                        behavior: 'smooth'
-                    });
+                    grid.scrollTo({ left: 0, behavior: 'smooth' });
                 } else {
-
-                    grid.scrollBy({
-                        left: scrollAmount,
-                        behavior: 'smooth'
-                    });
+                    grid.scrollBy({ left: scrollAmount, behavior: 'smooth' });
                 }
             }, 4000);
         }
@@ -149,19 +127,16 @@ const sections = document.querySelectorAll('.hero-section, .membership-section, 
             clearInterval(autoScroll);
         }
 
-
         startAutoScroll();
         startAutoRotation();
         grid.addEventListener('mouseenter', stopAutoRotation);
         grid.addEventListener('mouseleave', startAutoRotation);
+        grid.addEventListener('mouseenter', stopAutoScroll);
+        grid.addEventListener('mouseleave', startAutoScroll);
+    }
 
-
-        sections.forEach(section => {
-            observer.observe(section);
-        });
-
-        const backToTop = document.getElementById('backToTop');
-
+    const backToTop = document.getElementById('backToTop');
+    if (backToTop) {
         window.addEventListener('scroll', () => {
             if (window.scrollY > 500) {
                 backToTop.style.opacity = '1';
@@ -171,32 +146,19 @@ const sections = document.querySelectorAll('.hero-section, .membership-section, 
                 backToTop.style.visibility = 'hidden';
             }
         });
+    }
 
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function(e) {
-                e.preventDefault();
-                document.querySelector(this.getAttribute('href')).scrollIntoView({
-                    behavior: 'smooth'
-                });
-            });
+    document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+        anchor.addEventListener('click', function (event) {
+            const targetId = this.getAttribute('href');
+            if (!targetId || targetId === '#') {
+                return;
+            }
+            event.preventDefault();
+            const target = document.querySelector(targetId);
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth' });
+            }
         });
-
-
-        const navLinks = document.querySelectorAll('.nav-menu ul li a');
-
-        // Open Menu
-        hamburger.addEventListener('click', () => {
-            navMenu.classList.add('active');
-        });
-
-        // Close Menu (using the X button)
-        closeBtn.addEventListener('click', () => {
-            navMenu.classList.remove('active');
-        });
-
-        // Close Menu (when a link is clicked - important for mobile UX)
-        navLinks.forEach(link => {
-            link.addEventListener('click', () => {
-                navMenu.classList.remove('active');
-            });
-        });
+    });
+});

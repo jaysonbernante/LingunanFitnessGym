@@ -8,10 +8,11 @@ if (ini_get("session.use_cookies")) {
         $params["secure"], $params["httponly"]
     );
 }
+setcookie('gym_staff_remember', '', time() - 3600, '/');
 session_destroy();
 // Prevent caching after logout
 header('Cache-Control: no-cache, no-store, must-revalidate');
 header('Pragma: no-cache');
 header('Expires: 0');
-header('Location: index.php');
+header('Location: /LingunanFitnessGym/public/client/index.php');
 exit();
