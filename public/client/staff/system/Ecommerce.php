@@ -9,7 +9,20 @@ $pdo->exec("CREATE TABLE IF NOT EXISTS products (
     quantity INT NOT NULL,
     price DECIMAL(10,2) NOT NULL,
     img VARCHAR(255),
-    date_stocked DATE DEFAULT (CURRENT_DATE)
+    date_stocked DATE DEFAULT (CURRENT_DATE),
+    is_archived TINYINT(1) DEFAULT 0
+)");
+try { $pdo->exec("ALTER TABLE products ADD COLUMN is_archived TINYINT(1) DEFAULT 0"); } catch(Exception $e){}
+
+$pdo->exec("CREATE TABLE IF NOT EXISTS product_stock_history (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    product_id INT NOT NULL,
+    change_qty INT NOT NULL,
+    prev_qty INT DEFAULT NULL,
+    new_qty INT DEFAULT NULL,
+    note VARCHAR(255) DEFAULT NULL,
+    changed_by VARCHAR(100) DEFAULT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 )");
 
 // One-time: create sales table
@@ -31,7 +44,7 @@ try { $pdo->exec("ALTER TABLE sales ADD COLUMN transaction_id VARCHAR(32) DEFAUL
 // AJAX: get products JSON
 if (isset($_GET['ajax_products'])) {
     header('Content-Type: application/json');
-    $rows = $pdo->query("SELECT * FROM products ORDER BY product_name ASC")->fetchAll();
+    $rows = $pdo->query("SELECT * FROM products WHERE is_archived = 0 ORDER BY product_name ASC")->fetchAll();
     echo json_encode($rows);
     exit;
 }
@@ -85,6 +98,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_sale'])) {
         // Pass 2: deduct stock + record sales
         foreach ($locked as $pid => $data) {
             $pdo->prepare("UPDATE products SET quantity = quantity - ? WHERE id = ?")->execute([$data['qty'], $pid]);
+            // record stock history for sale
+            try {
+                $stmtPrev = $pdo->prepare("SELECT quantity FROM products WHERE id = ?"); $stmtPrev->execute([$pid]); $prev = $stmtPrev->fetch(); $prevQty = $prev ? intval($prev['quantity']) + $data['qty'] : null;
+                $newQty = $prev ? intval($prev['quantity']) : null;
+                $pdo->prepare("INSERT INTO product_stock_history (product_id, change_qty, prev_qty, new_qty, note, changed_by) VALUES (?, ?, ?, ?, ?, ?)")
+                    ->execute([$pid, -$data['qty'], $prevQty, $newQty, 'Sale', $_SESSION['user_name'] ?? 'system']);
+            } catch(Exception $e) {}
             $pdo->prepare("INSERT INTO sales (product_id, product_name, qty_sold, unit_price, total, payment_method, member_name, transacted_by, transaction_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
                 ->execute([$pid, $data['product']['product_name'], $data['qty'], $data['product']['price'], $data['lineTotal'], $payMethod, $memberName, $transactedBy, $txnId]);
         }
@@ -172,8 +192,26 @@ if (isset($_GET['ajax_rfid_pay'])) {
     exit;
 }
 
-// AJAX: delete product
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_delete_product'])) {
+// AJAX: archive product (soft delete)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_archive_product'])) {
+    header('Content-Type: application/json');
+    $id = intval($_POST['id'] ?? 0);
+    $pdo->prepare("UPDATE products SET is_archived = 1 WHERE id = ?")->execute([$id]);
+    echo json_encode(['success' => true]);
+    exit;
+}
+
+// AJAX: unarchive
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_unarchive_product'])) {
+    header('Content-Type: application/json');
+    $id = intval($_POST['id'] ?? 0);
+    $pdo->prepare("UPDATE products SET is_archived = 0 WHERE id = ?")->execute([$id]);
+    echo json_encode(['success' => true]);
+    exit;
+}
+
+// AJAX: permanent delete
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_permanent_delete_product'])) {
     header('Content-Type: application/json');
     $id = intval($_POST['id'] ?? 0);
     $pdo->prepare("DELETE FROM products WHERE id = ?")->execute([$id]);
@@ -545,6 +583,11 @@ include '../../../../component/staff_sidebar.php';
             <input type="text" name="product_name" id="pName" required placeholder="e.g. Protein Shake">
             <label id="qtyLabel">Quantity *</label>
             <input type="number" name="quantity" id="pQty" required min="1" placeholder="0">
+            <div id="manageOptions" style="display:none;margin-bottom:8px;">
+                <label style="color:#bbb;margin-bottom:6px;display:block;font-weight:600;">Action</label>
+                <label style="margin-right:12px;"><input type="radio" name="change_type" value="add" checked> Add stock</label>
+                <label><input type="radio" name="change_type" value="decrease"> Decrease stock</label>
+            </div>
             <label>Price (₱) *</label>
             <input type="number" name="price" id="pPrice" required min="0.01" step="0.01" placeholder="0.00">
             <label>Product Image</label>
@@ -905,6 +948,7 @@ $(document).ready(function() {
         $('#imgPreview').hide();
         $('#pImg').val('');
         $('#qtyLabel').text('Quantity *');
+        $('#manageOptions').hide();
         $('#productModal').addClass('active');
     });
     $('#btnCancelProduct').on('click', () => $('#productModal').removeClass('active'));
@@ -947,6 +991,8 @@ $(document).ready(function() {
     $('#productForm').on('submit', function(e) {
         e.preventDefault();
         const fd = new FormData(this);
+        const changeType = $('input[name="change_type"]:checked').val();
+        if (changeType) fd.append('change_type', changeType);
         fd.append('ajax_add_product', '1');
         $.ajax({
             url: 'Ecommerce.php', method: 'POST', data: fd,
@@ -985,41 +1031,33 @@ function renderStockGrid(filter) {
                 <div class="sc-name">${p.product_name}</div>
                 <div class="sc-price">₱${parseFloat(p.price).toFixed(2)}</div>
                 <div class="sc-date">Stocked: ${p.date_stocked || '-'}</div>
-                <div class="stock-card-actions">
-                    <button class="sc-btn restock" onclick="openRestock(${p.id},'${p.product_name.replace(/'/g,"\\'")}',${p.price})">Restock</button>
-                    <button class="sc-btn delete" onclick="deleteProduct(${p.id})">Delete</button>
-                </div>
+                                <div class="stock-card-actions">
+                                <button class="sc-btn manage" onclick="openManage(${p.id},'${p.product_name.replace(/'/g,"\\'")}',${p.price})">Manage</button>
+                                <button class="sc-btn archive" onclick="archiveProduct(${p.id})">Archive</button>
+                            </div>
             </div>
         `);
     });
 }
 
-function openRestock(id, name, price) {
-    $('#productModalTitle').text('Restock: ' + name);
-    $('#pSubmitBtn').text('Add Stock');
+    function openManage(id, name, price) {
+    $('#productModalTitle').text('Manage: ' + name);
+    $('#pSubmitBtn').text('Apply Change');
     $('#pEditId').val(id);
     $('#pName').val(name).prop('readonly', true);
     $('#pQty').val('');
     $('#pPrice').val(parseFloat(price).toFixed(2));
     $('#imgPreview').hide();
     $('#pImg').val('');
-    $('#qtyLabel').text('Add Quantity *');
+    $('#qtyLabel').text('Quantity *');
+    // show manage options if exists
+    if ($('#manageOptions')) $('#manageOptions').show();
     $('#productModal').addClass('active');
 }
 
 function deleteProduct(id) {
-    if (!confirm('Delete this product?')) return;
-    $.ajax({
-        url: 'Ecommerce.php', method: 'POST',
-        data: { ajax_delete_product: 1, id: id },
-        dataType: 'json',
-        success: function(res) {
-            if (res.success) {
-                showToast('Product deleted.', 'success');
-                loadProducts(() => { renderSellGrid(); renderStockGrid($('#stockSearch').val()); });
-            }
-        }
-    });
+    if (!confirm('Archive this product?')) return;
+    $.ajax({ url: 'Ecommerce.php', method: 'POST', data: { ajax_archive_product: 1, id: id }, dataType: 'json', success: function(res){ if (res.success) { showToast('Product archived.', 'success'); loadProducts(() => { renderSellGrid(); renderStockGrid($('#stockSearch').val()); }); } } });
 }
 
 // ── Sale History ──

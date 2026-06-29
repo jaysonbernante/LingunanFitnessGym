@@ -1,5 +1,6 @@
 <?php
 $page = 'staff';
+require_once '../../../../app/config/connection.php';
 include '../../../../component/admin_header.php';
 include '../../../../component/admin_sidebar.php';
 ?>
@@ -152,6 +153,127 @@ include '../../../../component/admin_sidebar.php';
         <?php
         require_once '../../../../app/config/connection.php';
 
+        function renderStaffRows(array $staffList): string {
+            ob_start();
+            if (empty($staffList)): ?>
+                <tr><td colspan="6" style="text-align:center;">No staff found.</td></tr>
+            <?php else: foreach ($staffList as $staff):
+                $avatarColors = ['#1976d2','#e53935','#388e3c','#f57c00','#7b1fa2','#00838f','#c62828','#2e7d32','#1565c0','#6a1b9a'];
+                $firstLetter  = strtoupper(substr($staff['username'], 0, 1)) ?: '?';
+                $avatarColor  = $avatarColors[ord($firstLetter) % count($avatarColors)];
+                $roleBadge    = match($staff['role']) {
+                    'super_admin' => '<span class="badge-status badge-super_admin">Super Admin</span>',
+                    'admin'       => '<span class="badge-status badge-admin">Admin</span>',
+                    default       => '<span class="badge-status badge-staff">Staff</span>',
+                };
+                $joined = $staff['created_at'] ? date('d M Y', strtotime($staff['created_at'])) : '-';
+            ?>
+                <tr>
+                    <td data-label="Username">
+                        <div class="user-cell">
+                            <div class="user-avatar" style="background:<?= $avatarColor ?>"><?= htmlspecialchars($firstLetter) ?></div>
+                            <span class="user-name-text"><?= htmlspecialchars($staff['username']) ?></span>
+                        </div>
+                    </td>
+                    <td data-label="Email"><?= htmlspecialchars($staff['email']) ?></td>
+                    <td data-label="Role"><?= $roleBadge ?></td>
+                    <td data-label="Status">
+                        <?php $staffStatus = $staff['status'] ?? 'active'; ?>
+                        <?php if ($staffStatus === 'active'): ?>
+                            <span class="badge-active-status">Active</span>
+                        <?php else: ?>
+                            <span class="badge-inactive-status">Inactive</span>
+                        <?php endif; ?>
+                    </td>
+                    <td data-label="Joined Date"><?= htmlspecialchars($joined) ?></td>
+                    <td data-label="Actions">
+                        <?php if ($staff['role'] !== 'super_admin'): ?>
+                            <button type="button" class="action-btn"
+                                data-id="<?= $staff['id'] ?>"
+                                data-username="<?= htmlspecialchars($staff['username'], ENT_QUOTES) ?>"
+                                data-email="<?= htmlspecialchars($staff['email'] ?? '', ENT_QUOTES) ?>"
+                                data-role="<?= htmlspecialchars($staff['role'], ENT_QUOTES) ?>"
+                                onclick="openEditModal(this)">Edit</button>
+                            <form method="post" action="" style="display:inline">
+                                <input type="hidden" name="toggle_status_id" value="<?= $staff['id'] ?>">
+                                <button type="submit" class="action-btn deactivate">
+                                    <?= ($staff['status'] ?? 'active') === 'active' ? 'Deactivate' : 'Activate' ?>
+                                </button>
+                            </form>
+                            <?php if (!empty($staff['locked_until']) && strtotime($staff['locked_until']) > time()): ?>
+                                <form method="post" action="" style="display:inline">
+                                    <input type="hidden" name="unlock_account_id" value="<?= $staff['id'] ?>">
+                                    <button type="submit" class="action-btn" style="color:#f57c00;">Unlock</button>
+                                </form>
+                            <?php endif; ?>
+                            <form method="post" action="" style="display:inline" onsubmit="return confirm('Archive this staff member?');">
+                                <input type="hidden" name="archive_id" value="<?= $staff['id'] ?>">
+                                <button type="submit" class="action-btn delete">Archive</button>
+                            </form>
+                        <?php else: ?>
+                            <span style="color:#666; font-size:13px;">—</span>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+            <?php endforeach; endif;
+            return ob_get_clean();
+        }
+
+        function renderResetRows(array $resetRequests): string {
+            ob_start();
+            if (empty($resetRequests)): ?>
+                <tr><td colspan="5" style="text-align:center;">No password reset requests found.</td></tr>
+            <?php else: foreach ($resetRequests as $request): ?>
+                <tr>
+                    <td data-label="Username"><?= htmlspecialchars($request['username']) ?></td>
+                    <td data-label="Reason"><?= htmlspecialchars($request['reason'] ?? '-') ?></td>
+                    <td data-label="Status"><?= htmlspecialchars($request['status']) ?></td>
+                    <td data-label="Requested"><?= htmlspecialchars($request['created_at']) ?></td>
+                    <td data-label="Action">
+                        <?php if ($request['status'] === 'pending'): ?>
+                            <form method="post" style="display:inline;">
+                                <input type="hidden" name="handle_reset_request" value="1">
+                                <input type="hidden" name="request_id" value="<?= $request['id'] ?>">
+                                <input type="hidden" name="reset_action" value="approve">
+                                <button type="submit" class="action-btn" style="color:#43a047;">Approve</button>
+                            </form>
+                            <form method="post" style="display:inline;">
+                                <input type="hidden" name="handle_reset_request" value="1">
+                                <input type="hidden" name="request_id" value="<?= $request['id'] ?>">
+                                <input type="hidden" name="reset_action" value="reject">
+                                <button type="submit" class="action-btn delete">Reject</button>
+                            </form>
+                        <?php else: ?>
+                            <span style="color:#aaa;">Handled</span>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+            <?php endforeach; endif;
+            return ob_get_clean();
+        }
+
+        function renderArchiveRows(array $archiveList): string {
+            ob_start();
+            if (empty($archiveList)): ?>
+                <tr><td colspan="6" style="text-align:center;">No archived staff accounts.</td></tr>
+            <?php else: foreach ($archiveList as $archive): ?>
+                <tr>
+                    <td data-label="Username"><?= htmlspecialchars($archive['username']) ?></td>
+                    <td data-label="Email"><?= htmlspecialchars($archive['email'] ?? '-') ?></td>
+                    <td data-label="Role"><?= htmlspecialchars($archive['role']) ?></td>
+                    <td data-label="Archived At"><?= htmlspecialchars($archive['archived_at']) ?></td>
+                    <td data-label="Archived By"><?= htmlspecialchars($archive['archived_by'] ?? '-') ?></td>
+                    <td data-label="Action">
+                        <form method="post" style="display:inline;">
+                            <input type="hidden" name="recover_archive_id" value="<?= $archive['id'] ?>">
+                            <button type="submit" class="action-btn" style="color:#43a047;">Recover</button>
+                        </form>
+                    </td>
+                </tr>
+            <?php endforeach; endif;
+            return ob_get_clean();
+        }
+
         // One-time migration: add status column if not exists
         try { $pdo->exec("ALTER TABLE users ADD COLUMN status VARCHAR(10) NOT NULL DEFAULT 'active'"); } catch (Exception $e) {}
         try { $pdo->exec("CREATE TABLE IF NOT EXISTS staff_archive (
@@ -170,9 +292,11 @@ include '../../../../component/admin_sidebar.php';
             $username = trim($_POST['username'] ?? '');
             $email    = trim($_POST['email'] ?? '');
             $role     = trim($_POST['role'] ?? 'staff');
-            $password = password_hash('12345fitness', PASSWORD_DEFAULT);
+            $password = password_hash('s', PASSWORD_DEFAULT);
             $stmt = $pdo->prepare("INSERT INTO users (username, email, role, password, status, created_at) VALUES (?, ?, ?, ?, 'active', NOW())");
             $stmt->execute([$username, $email, $role, $password]);
+            $adminName = $_SESSION['user_name'] ?? 'admin';
+            add_admin_notification($pdo, 'staff', 'Staff account created', 'A new staff account was added and is ready for use.', $adminName);
             echo "<meta http-equiv='refresh' content='0'>";
             exit;
         }
@@ -185,6 +309,7 @@ include '../../../../component/admin_sidebar.php';
             $role        = trim($_POST['role'] ?? 'staff');
             $newPassword = trim($_POST['new_password'] ?? '');
             if ($editId > 0 && $username !== '') {
+                $adminName = $_SESSION['user_name'] ?? 'admin';
                 if ($newPassword !== '') {
                     $hashed = password_hash($newPassword, PASSWORD_DEFAULT);
                     $pdo->prepare("UPDATE users SET username = ?, email = ?, role = ?, password = ? WHERE id = ? AND role != 'super_admin'")
@@ -193,6 +318,7 @@ include '../../../../component/admin_sidebar.php';
                     $pdo->prepare("UPDATE users SET username = ?, email = ?, role = ? WHERE id = ? AND role != 'super_admin'")
                         ->execute([$username, $email, $role, $editId]);
                 }
+                add_admin_notification($pdo, 'staff', 'Staff account updated', 'Staff account details were updated.', $adminName);
             }
             echo "<meta http-equiv='refresh' content='0'>";
             exit;
@@ -203,6 +329,8 @@ include '../../../../component/admin_sidebar.php';
             $toggleId = intval($_POST['toggle_status_id']);
             $pdo->prepare("UPDATE users SET status = CASE WHEN status = 'active' THEN 'inactive' ELSE 'active' END WHERE id = ? AND role != 'super_admin'")
                 ->execute([$toggleId]);
+            $adminName = $_SESSION['user_name'] ?? 'admin';
+            add_admin_notification($pdo, 'staff', 'Staff status changed', 'A staff account status was changed.', $adminName);
             echo "<meta http-equiv='refresh' content='0'>";
             exit;
         }
@@ -219,8 +347,8 @@ include '../../../../component/admin_sidebar.php';
 
                 if ($resetReq) {
                     if ($action === 'approve') {
-                        $pdo->prepare("UPDATE users SET status = 'active', locked_until = NULL, failed_login_attempts = 0, password_reset_required = 0 WHERE id = ?")
-                            ->execute([$resetReq['user_id']]);
+                        $pdo->prepare("UPDATE users SET status = 'active', locked_until = NULL, failed_login_attempts = 0, password_reset_required = 0, password = ? WHERE id = ?")
+                            ->execute([password_hash('Staff1234', PASSWORD_DEFAULT), $resetReq['user_id']]);
                     } else {
                         $pdo->prepare("UPDATE users SET status = 'active', password_reset_required = 0 WHERE id = ?")
                             ->execute([$resetReq['user_id']]);
@@ -228,6 +356,7 @@ include '../../../../component/admin_sidebar.php';
 
                     $pdo->prepare("UPDATE password_reset_requests SET status = ?, handled_by = ?, handled_at = NOW() WHERE id = ?")
                         ->execute([$action === 'approve' ? 'approved' : 'rejected', $adminName, $requestId]);
+                    add_admin_notification($pdo, 'staff', 'Password reset handled', 'A password reset request was approved or rejected.', $adminName);
                 }
             }
             echo "<meta http-equiv='refresh' content='0'>";
@@ -238,6 +367,8 @@ include '../../../../component/admin_sidebar.php';
             $unlockId = intval($_POST['unlock_account_id']);
             $pdo->prepare("UPDATE users SET failed_login_attempts = 0, locked_until = NULL, status = 'active', password_reset_required = 0 WHERE id = ? AND role = 'staff'")
                 ->execute([$unlockId]);
+            $adminName = $_SESSION['user_name'] ?? 'admin';
+            add_admin_notification($pdo, 'staff', 'Staff account unlocked', 'A locked staff account was unlocked.', $adminName);
             echo "<meta http-equiv='refresh' content='0'>";
             exit;
         }
@@ -254,6 +385,7 @@ include '../../../../component/admin_sidebar.php';
                 $pdo->prepare("INSERT INTO staff_archive (user_id, username, email, role, archived_at, archived_by, reason) VALUES (?, ?, ?, ?, NOW(), ?, 'archived')")
                     ->execute([$staffRow['id'], $staffRow['username'], $staffRow['email'], $staffRow['role'], $adminName]);
                 $pdo->prepare("DELETE FROM users WHERE id = ? AND role != 'super_admin'")->execute([$archiveId]);
+                add_admin_notification($pdo, 'staff', 'Staff archived', 'A staff account was archived.', $adminName);
             }
             echo "<meta http-equiv='refresh' content='0'>";
             exit;
@@ -267,15 +399,19 @@ include '../../../../component/admin_sidebar.php';
 
             if ($archiveRow) {
                 $pdo->prepare("INSERT INTO users (username, email, role, password, status, created_at) VALUES (?, ?, ?, ?, 'active', NOW())")
-                    ->execute([$archiveRow['username'], $archiveRow['email'], $archiveRow['role'], password_hash('12345fitness', PASSWORD_DEFAULT)]);
+                    ->execute([$archiveRow['username'], $archiveRow['email'], $archiveRow['role'], password_hash('Staff1234', PASSWORD_DEFAULT)]);
                 $pdo->prepare("DELETE FROM staff_archive WHERE id = ?")->execute([$archiveId]);
+                $adminName = $_SESSION['user_name'] ?? 'admin';
+                add_admin_notification($pdo, 'staff', 'Staff recovered', 'A previously archived staff account was recovered.', $adminName);
             }
             echo "<meta http-equiv='refresh' content='0'>";
             exit;
         }
 
-        $search     = $_GET['search'] ?? '';
-        $roleFilter = $_GET['role'] ?? '';
+        $search       = $_GET['search'] ?? '';
+        $roleFilter   = $_GET['role'] ?? '';
+        $resetSearch  = $_GET['reset_search'] ?? '';
+        $resetStatus  = $_GET['reset_status'] ?? '';
 
         try      {
             $query  = "SELECT * FROM users WHERE 1";
@@ -293,8 +429,21 @@ include '../../../../component/admin_sidebar.php';
             $stmt->execute($params);
             $staffList = $stmt->fetchAll();
 
-            $reqStmt = $pdo->query("SELECT * FROM password_reset_requests ORDER BY created_at DESC");
+            $reqQuery  = "SELECT * FROM password_reset_requests WHERE 1";
+            $reqParams = [];
+            if ($resetSearch !== '') {
+                $reqQuery   .= " AND username LIKE ?";
+                $reqParams[] = "%$resetSearch%";
+            }
+            if ($resetStatus !== '') {
+                $reqQuery   .= " AND status = ?";
+                $reqParams[] = $resetStatus;
+            }
+            $reqQuery .= " ORDER BY created_at DESC";
+            $reqStmt = $pdo->prepare($reqQuery);
+            $reqStmt->execute($reqParams);
             $resetRequests = $reqStmt->fetchAll();
+
             $archiveStmt = $pdo->query("SELECT * FROM staff_archive ORDER BY archived_at DESC");
             $archiveList = $archiveStmt->fetchAll();
         } catch (Exception $e) {
@@ -303,11 +452,22 @@ include '../../../../component/admin_sidebar.php';
             $resetRequests = [];
             $archiveList = [];
         }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['ajax_section'])) {
+            if ($_GET['ajax_section'] === 'staff') {
+                echo renderStaffRows($staffList);
+                exit;
+            }
+            if ($_GET['ajax_section'] === 'reset') {
+                echo renderResetRows($resetRequests);
+                exit;
+            }
+        }
         ?>
 
         <!-- Toolbar -->
         <div style="margin-bottom:15px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-            <input type="text" id="searchUsername" placeholder="Search username..."
+            <input type="text" id="searchUsername" placeholder="Search staff username..."
                 style="padding:8px 12px; border-radius:8px; border:1px solid #ccc; width:250px;">
             <select id="roleFilter" style="padding:8px 12px; border-radius:8px; border:1px solid #ccc;">
                 <option value="">All Roles</option>
@@ -322,11 +482,37 @@ include '../../../../component/admin_sidebar.php';
             </div>
         </div>
 
-        <div style="margin-top:24px; background:#2b2b2b; padding:16px; border-radius:14px;">
-            <h3 style="margin:0 0 12px; color:#fff;">Password Reset Requests</h3>
-            <?php if (empty($resetRequests)): ?>
-                <p style="margin:0; color:#bbb;">No staff password reset requests right now.</p>
-            <?php else: ?>
+        <div style="margin-top:24px; background:#2b2b2b; padding:16px; border-radius:14px;" id="staffSection">
+            <h3 style="margin:0 0 12px; color:#fff;">Staff List</h3>
+            <div class="table-wrapper">
+                <table class="admin-table" style="width:100%; background:#333;">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Joined Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="staffTableBody"><?= renderStaffRows($staffList) ?></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div style="margin-top:24px;" id="dropSection">
+            <div style="margin-top:24px; background:#2b2b2b; padding:16px; border-radius:14px;" id="resetSection">
+                <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:15px;">
+                    <input type="text" id="resetSearch" placeholder="Search reset username..."
+                        style="padding:8px 12px; border-radius:8px; border:1px solid #ccc; width:250px;">
+                    <select id="resetStatus" style="padding:8px 12px; border-radius:8px; border:1px solid #ccc; width:180px;">
+                        <option value="">All Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                    </select>
+                </div>
                 <div class="table-wrapper">
                     <table class="admin-table" style="background:#262626;">
                         <thead>
@@ -338,44 +524,13 @@ include '../../../../component/admin_sidebar.php';
                                 <th>Action</th>
                             </tr>
                         </thead>
-                        <tbody>
-                        <?php foreach ($resetRequests as $request): ?>
-                            <tr>
-                                <td data-label="Username"><?= htmlspecialchars($request['username']) ?></td>
-                                <td data-label="Reason"><?= htmlspecialchars($request['reason'] ?? '-') ?></td>
-                                <td data-label="Status"><?= htmlspecialchars($request['status']) ?></td>
-                                <td data-label="Requested"><?= htmlspecialchars($request['created_at']) ?></td>
-                                <td data-label="Action">
-                                    <?php if ($request['status'] === 'pending'): ?>
-                                        <form method="post" style="display:inline;">
-                                            <input type="hidden" name="handle_reset_request" value="1">
-                                            <input type="hidden" name="request_id" value="<?= $request['id'] ?>">
-                                            <input type="hidden" name="reset_action" value="approve">
-                                            <button type="submit" class="action-btn" style="color:#43a047;">Approve</button>
-                                        </form>
-                                        <form method="post" style="display:inline;">
-                                            <input type="hidden" name="handle_reset_request" value="1">
-                                            <input type="hidden" name="request_id" value="<?= $request['id'] ?>">
-                                            <input type="hidden" name="reset_action" value="reject">
-                                            <button type="submit" class="action-btn delete">Reject</button>
-                                        </form>
-                                    <?php else: ?>
-                                        <span style="color:#aaa;">Handled</span>
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                        </tbody>
+                        <tbody id="resetTableBody"><?= renderResetRows($resetRequests) ?></tbody>
                     </table>
                 </div>
-            <?php endif; ?>
-        </div>
+            </div>
 
-        <div style="margin-top:24px; background:#2b2b2b; padding:16px; border-radius:14px;">
-            <h3 style="margin:0 0 12px; color:#fff;">Archived Staff History</h3>
-            <?php if (empty($archiveList)): ?>
-                <p style="margin:0; color:#bbb;">No archived staff accounts.</p>
-            <?php else: ?>
+            <div style="margin-top:24px; background:#2b2b2b; padding:16px; border-radius:14px;" id="archiveSection">
+                <h3 style="margin:0 0 12px; color:#fff;">Archived Staff History</h3>
                 <div class="table-wrapper">
                     <table class="admin-table" style="background:#262626;">
                         <thead>
@@ -388,110 +543,11 @@ include '../../../../component/admin_sidebar.php';
                                 <th>Action</th>
                             </tr>
                         </thead>
-                        <tbody>
-                        <?php foreach ($archiveList as $archive): ?>
-                            <tr>
-                                <td data-label="Username"><?= htmlspecialchars($archive['username']) ?></td>
-                                <td data-label="Email"><?= htmlspecialchars($archive['email'] ?? '-') ?></td>
-                                <td data-label="Role"><?= htmlspecialchars($archive['role']) ?></td>
-                                <td data-label="Archived At"><?= htmlspecialchars($archive['archived_at']) ?></td>
-                                <td data-label="Archived By"><?= htmlspecialchars($archive['archived_by'] ?? '-') ?></td>
-                                <td data-label="Action">
-                                    <form method="post" style="display:inline;">
-                                        <input type="hidden" name="recover_archive_id" value="<?= $archive['id'] ?>">
-                                        <button type="submit" class="action-btn" style="color:#43a047;">Recover</button>
-                                    </form>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                        </tbody>
+                        <tbody id="archiveTableBody"><?= renderArchiveRows($archiveList) ?></tbody>
                     </table>
                 </div>
-            <?php endif; ?>
+            </div>
         </div>
-
-        <!-- Table -->
-        <div class="table-wrapper" style="margin-top:24px;">
-            <table class="admin-table" style="width:100%; background:#333;">
-                <thead>
-                    <tr>
-                        <th>Username</th>
-                        <th>Email</th>
-                        <th>Role</th>
-                        <th>Status</th>
-                        <th>Joined Date</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                <?php if (empty($staffList)): ?>
-                    <tr><td colspan="6" style="text-align:center;">No staff found.</td></tr>
-                <?php else: ?>
-                    <?php foreach ($staffList as $staff): ?>
-                        <?php
-                            $avatarColors = ['#1976d2','#e53935','#388e3c','#f57c00','#7b1fa2','#00838f','#c62828','#2e7d32','#1565c0','#6a1b9a'];
-                            $firstLetter  = strtoupper(substr($staff['username'], 0, 1)) ?: '?';
-                            $avatarColor  = $avatarColors[ord($firstLetter) % count($avatarColors)];
-                            $roleBadge    = match($staff['role']) {
-                                'super_admin' => '<span class="badge-status badge-super_admin">Super Admin</span>',
-                                'admin'       => '<span class="badge-status badge-admin">Admin</span>',
-                                default       => '<span class="badge-status badge-staff">Staff</span>',
-                            };
-                            $joined = $staff['created_at'] ? date('d M Y', strtotime($staff['created_at'])) : '-';
-                        ?>
-                        <tr>
-                            <td data-label="Username">
-                                <div class="user-cell">
-                                    <div class="user-avatar" style="background:<?= $avatarColor ?>"><?= htmlspecialchars($firstLetter) ?></div>
-                                    <span class="user-name-text"><?= htmlspecialchars($staff['username']) ?></span>
-                                </div>
-                            </td>
-                            <td data-label="Email"><?= htmlspecialchars($staff['email']) ?></td>
-                            <td data-label="Role"><?= $roleBadge ?></td>
-                            <td data-label="Status">
-                                <?php $staffStatus = $staff['status'] ?? 'active'; ?>
-                                <?php if ($staffStatus === 'active'): ?>
-                                    <span class="badge-active-status">Active</span>
-                                <?php else: ?>
-                                    <span class="badge-inactive-status">Inactive</span>
-                                <?php endif; ?>
-                            </td>
-                            <td data-label="Joined Date"><?= htmlspecialchars($joined) ?></td>
-                            <td data-label="Actions">
-                                <?php if ($staff['role'] !== 'super_admin'): ?>
-                                    <button type="button" class="action-btn"
-                                        data-id="<?= $staff['id'] ?>"
-                                        data-username="<?= htmlspecialchars($staff['username'], ENT_QUOTES) ?>"
-                                        data-email="<?= htmlspecialchars($staff['email'] ?? '', ENT_QUOTES) ?>"
-                                        data-role="<?= htmlspecialchars($staff['role'], ENT_QUOTES) ?>"
-                                        onclick="openEditModal(this)">Edit</button>
-                                    <form method="post" action="" style="display:inline">
-                                        <input type="hidden" name="toggle_status_id" value="<?= $staff['id'] ?>">
-                                        <button type="submit" class="action-btn deactivate">
-                                            <?= ($staff['status'] ?? 'active') === 'active' ? 'Deactivate' : 'Activate' ?>
-                                        </button>
-                                    </form>
-                                    <?php if (!empty($staff['locked_until']) && strtotime($staff['locked_until']) > time()): ?>
-                                        <form method="post" action="" style="display:inline">
-                                            <input type="hidden" name="unlock_account_id" value="<?= $staff['id'] ?>">
-                                            <button type="submit" class="action-btn" style="color:#f57c00;">Unlock</button>
-                                        </form>
-                                    <?php endif; ?>
-                                    <form method="post" action="" style="display:inline" onsubmit="return confirm('Archive this staff member?');">
-                                        <input type="hidden" name="archive_id" value="<?= $staff['id'] ?>">
-                                        <button type="submit" class="action-btn delete">Archive</button>
-                                    </form>
-                                <?php else: ?>
-                                    <span style="color:#666; font-size:13px;">—</span>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
 
     <!-- Add Staff Modal -->
     <div class="modal-overlay" id="addStaffModal">
@@ -509,7 +565,7 @@ include '../../../../component/admin_sidebar.php';
                         <option value="staff">Staff</option>
                         <option value="super_admin">Super Admin</option>
                     </select>
-                    <p style="font-size:12px; color:#888; margin: -4px 0 12px;">Default password: <strong style="color:#aaa">12345fitness</strong></p>
+                    <p style="font-size:12px; color:#888; margin: -4px 0 12px;">Default password: <strong style="color:#aaa">Staff1234</strong></p>
                     <div class="modal-actions">
                         <button type="submit" class="btn-submit">Add Staff</button>
                         <button type="button" class="btn-cancel-modal" id="btnCloseModal">Cancel</button>
@@ -563,18 +619,34 @@ include '../../../../component/admin_sidebar.php';
             var search = $('#searchUsername').val();
             var role   = $('#roleFilter').val();
             $.ajax({
-                url: 'staff.php',
+                url: 'staff_ajax.php',
                 method: 'GET',
-                data: { search: search, role: role },
+                data: { search: search, role: role, ajax_section: 'staff' },
                 success: function (data) {
-                    var newTbody = $(data).find('tbody').html();
-                    $('tbody').html(newTbody);
+                    $('#staffTableBody').html(data);
+                }
+            });
+        }
+
+        function fetchResetRequests() {
+            var search = $('#resetSearch').val();
+            var status = $('#resetStatus').val();
+            $.ajax({
+                url: 'staff_ajax.php',
+                method: 'GET',
+                data: { reset_search: search, reset_status: status, ajax_section: 'reset' },
+                success: function (data) {
+                    $('#resetTableBody').html(data);
                 }
             });
         }
 
         $('#searchUsername').on('keyup', fetchStaff);
         $('#roleFilter').on('change', fetchStaff);
+        $('#resetSearch').on('keyup', fetchResetRequests);
+        $('#resetStatus').on('change', fetchResetRequests);
+
+        fetchResetRequests();
 
         $('#addStaffBtn').on('click', function () {
             $('#addStaffModal').addClass('active');

@@ -63,7 +63,7 @@ $sql = "SELECT date, source, description, COALESCE(amount,0) AS amount, member_n
 ";
 $params = [$startDate, $endDate, $startDate, $endDate, $startDate, $endDate];
 if ($search !== '') {
-    $sql .= " AND (source LIKE ? OR description LIKE ? OR member_name LIKE ? OR payment_method LIKE ? OR operator LIKE ? )";
+    $sql .= " WHERE (source LIKE ? OR description LIKE ? OR member_name LIKE ? OR payment_method LIKE ? OR operator LIKE ? )";
     array_push($params, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm);
 }
 $sql .= " ORDER BY date DESC LIMIT 500";

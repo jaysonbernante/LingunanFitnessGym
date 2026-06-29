@@ -14,5 +14,5 @@ session_destroy();
 header('Cache-Control: no-cache, no-store, must-revalidate');
 header('Pragma: no-cache');
 header('Expires: 0');
-header('Location: /LingunanFitnessGym/public/client/index.php');
+header('Location: ../public/client/index.php');
 exit();

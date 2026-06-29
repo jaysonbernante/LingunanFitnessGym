@@ -1,7 +1,7 @@
 <?php
 date_default_timezone_set('Asia/Manila');
 
-// Database connection for dbgym
+
 $host = 'sql201.infinityfree.com';
 $db   = 'if0_41655270_dbgym';
 $user = 'if0_41655270'; // Change if your MySQL user is different
@@ -15,8 +15,31 @@ $options = [
 	PDO::ATTR_EMULATE_PREPARES   => false,
 ];
 
+
+function add_admin_notification($pdo, $type, $title, $message, $createdBy = null) {
+	if (!$pdo instanceof PDO) {
+		return;
+	}
+	try {
+		$stmt = $pdo->prepare("INSERT INTO admin_notifications (type, title, message, created_by) VALUES (?, ?, ?, ?)");
+		$stmt->execute([$type, $title, $message, $createdBy]);
+	} catch (Exception $e) {
+		// Ignore notification failures so main actions still work.
+	}
+}
+
 try {
 	$pdo = new PDO($dsn, $user, $pass, $options);
+
+	$pdo->exec("CREATE TABLE IF NOT EXISTS admin_notifications (
+		id INT AUTO_INCREMENT PRIMARY KEY,
+		type VARCHAR(30) NOT NULL,
+		title VARCHAR(255) NOT NULL,
+		message TEXT NOT NULL,
+		created_by VARCHAR(100) DEFAULT NULL,
+		is_read TINYINT(1) NOT NULL DEFAULT 0,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	)");
 
 	$pdo->exec("CREATE TABLE IF NOT EXISTS password_reset_requests (
 		id INT AUTO_INCREMENT PRIMARY KEY,

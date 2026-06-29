@@ -1,6 +1,129 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) session_start();
 require_once '../../../../app/config/connection.php';
+require_once '../../../../component/session_check.php';
+require_once '../../../../app/config/mail.php';
+
+function backup_generate_otp_code(): string {
+    return str_pad((string) random_int(100000, 999999), 6, '0', STR_PAD_LEFT);
+}
+
+function backup_store_pending_otp(int $userId, string $email, string $otp): array {
+    $_SESSION['backup_otp_pending'] = [
+        'user_id' => $userId,
+        'email' => $email,
+        'otp_hash' => password_hash($otp, PASSWORD_DEFAULT),
+        'otp_expiry' => time() + 600,
+    ];
+    return ['success' => true, 'message' => 'A verification code was sent to your email.'];
+}
+
+function backup_send_otp_email(int $userId, string $email): array {
+    $limit = otp_get_send_limit_state('all_otp');
+    if (!$limit['allowed']) {
+        return ['success' => false, 'message' => $limit['message']];
+    }
+
+    $otp = backup_generate_otp_code();
+    $result = backup_store_pending_otp($userId, $email, $otp);
+    if ($result['success'] !== true) {
+        return $result;
+    }
+
+    $mailBody = '<html><body><h2>Backup access verification</h2><p>Your verification code is:</p><h1 style="font-size:32px;letter-spacing:4px;">' . htmlspecialchars($otp) . '</h1><p>This code expires in 10 minutes.</p><p>Thank you,<br>Lingunan Fitness Gym</p></body></html>';
+    $mailResult = send_gmail_smtp($email, 'Backup access verification code', $mailBody);
+    if ($mailResult !== true) {
+        unset($_SESSION['backup_otp_pending']);
+        return ['success' => false, 'message' => 'Unable to send verification email.'];
+    }
+
+    otp_record_send_attempt('all_otp');
+    return ['success' => true, 'message' => 'A verification code was sent to your email.'];
+}
+
+$currentUserId = intval($_SESSION['user_id'] ?? 0);
+$currentUserRole = $_SESSION['user_role'] ?? '';
+$backupOtpMessage = '';
+$backupOtpError = '';
+$backupOtpRequired = ($currentUserRole === 'super_admin');
+$backupOtpWindowSeconds = 600;
+$backupOtpVerified = !empty($_SESSION['backup_verified_at']) && !empty($_SESSION['backup_verified_for']) && intval($_SESSION['backup_verified_for']) === $currentUserId;
+
+if (isset($_GET['backup_timed_out']) || isset($_POST['backup_timed_out'])) {
+    unset($_SESSION['backup_verified_at'], $_SESSION['backup_verified_for']);
+    $backupOtpVerified = false;
+    $backupOtpError = 'Your backup session expired after 10 minutes of inactivity. Please verify again.';
+}
+
+if ($backupOtpVerified && (time() - intval($_SESSION['backup_verified_at'] ?? 0) > $backupOtpWindowSeconds)) {
+    unset($_SESSION['backup_verified_at'], $_SESSION['backup_verified_for']);
+    $backupOtpVerified = false;
+    $backupOtpError = 'Your backup session expired. Please verify again.';
+}
+
+if ($backupOtpRequired && $backupOtpVerified) {
+    $_SESSION['backup_verified_at'] = time();
+}
+
+if ($backupOtpRequired && !$backupOtpVerified) {
+    $pendingOtp = $_SESSION['backup_otp_pending'] ?? null;
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['backup_verify'])) {
+        $otpCode = trim($_POST['otp_code'] ?? '');
+        if ($pendingOtp && isset($pendingOtp['otp_hash']) && time() <= intval($pendingOtp['otp_expiry'] ?? 0) && password_verify($otpCode, $pendingOtp['otp_hash'])) {
+            $_SESSION['backup_verified_at'] = time();
+            $_SESSION['backup_verified_for'] = $currentUserId;
+            unset($_SESSION['backup_otp_pending']);
+            header('Location: ' . $_SERVER['REQUEST_URI']);
+            exit;
+        }
+
+        $backupOtpError = 'Invalid or expired verification code.';
+    } elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['backup_resend_otp'])) {
+        $userEmail = '';
+        try {
+            $stmt = $pdo->prepare("SELECT email FROM users WHERE id = ? LIMIT 1");
+            $stmt->execute([$currentUserId]);
+            $userEmail = trim((string) ($stmt->fetch(PDO::FETCH_ASSOC)['email'] ?? ''));
+        } catch (Exception $e) {}
+
+        if ($userEmail !== '') {
+            $result = backup_send_otp_email($currentUserId, $userEmail);
+            $backupOtpMessage = $result['message'];
+        } else {
+            $backupOtpError = 'Unable to find your email address.';
+        }
+    } elseif (!$pendingOtp || time() > intval($pendingOtp['otp_expiry'] ?? 0) || intval($pendingOtp['user_id'] ?? 0) !== $currentUserId) {
+        $userEmail = '';
+        try {
+            $stmt = $pdo->prepare("SELECT email FROM users WHERE id = ? LIMIT 1");
+            $stmt->execute([$currentUserId]);
+            $userEmail = trim((string) ($stmt->fetch(PDO::FETCH_ASSOC)['email'] ?? ''));
+        } catch (Exception $e) {}
+
+        if ($userEmail !== '') {
+            $result = backup_send_otp_email($currentUserId, $userEmail);
+            $backupOtpMessage = $result['message'];
+        } else {
+            $backupOtpError = 'Unable to find your email address.';
+        }
+    } else {
+        $backupOtpMessage = 'A verification code was already sent to your email.';
+    }
+
+    if (!$backupOtpVerified) {
+        http_response_code(200);
+        echo '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Backup verification</title><style>body{margin:0;font-family:Arial,sans-serif;background:#111;color:#f5f5f5;display:flex;align-items:center;justify-content:center;min-height:100vh;} .card{background:#1e1e1e;border:1px solid #333;border-radius:14px;padding:24px 28px;max-width:420px;width:100%;box-shadow:0 10px 30px rgba(0,0,0,.35);} h2{margin-top:0;color:#fff;} p{color:#aaa;line-height:1.5;} label{display:block;font-size:13px;color:#bbb;margin-bottom:8px;} input{width:100%;box-sizing:border-box;padding:10px 12px;border-radius:10px;border:1px solid #444;background:#121212;color:#fff;margin-bottom:10px;} .btn{background:#1976d2;color:#fff;border:none;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:700;width:100%;} .btn.secondary{background:#2a2a2a;margin-top:8px;} .msg{margin-bottom:12px;padding:10px 12px;border-radius:10px;font-size:13px;} .msg.ok{background:rgba(67,160,71,.16);color:#a5d6a7;} .msg.err{background:rgba(229,57,53,.16);color:#ef9a9a;}</style></head><body><div class="card"><h2>Backup access verification</h2><p>For security, super admins must verify their email before opening backup tools.</p>';
+        if ($backupOtpMessage !== '') {
+            echo '<div class="msg ok">' . htmlspecialchars($backupOtpMessage) . '</div>';
+        }
+        if ($backupOtpError !== '') {
+            echo '<div class="msg err">' . htmlspecialchars($backupOtpError) . '</div>';
+        }
+        echo '<form method="post"><input type="hidden" name="backup_verify" value="1"><label for="otp_code">Enter 6-digit code</label><input id="otp_code" name="otp_code" maxlength="6" inputmode="numeric" autocomplete="one-time-code" required><button class="btn" type="submit">Verify & Open Backup</button></form><form method="post" style="margin-top:8px;"><input type="hidden" name="backup_resend_otp" value="1"><button class="btn secondary" type="submit">Resend code</button></form></div></body></html>';
+        exit;
+    }
+}
 
 // ── Config ────────────────────────────────────────────────────────────────
 define('BACKUP_DIR', __DIR__ . '/../../../../backups/');
@@ -101,6 +224,8 @@ if (isset($_POST['ajax_export'])) {
 
         // Record last backup time in session for notification
         $_SESSION['last_backup'] = time();
+        $adminName = $_SESSION['user_name'] ?? 'admin';
+        add_admin_notification($pdo, 'backup', 'Backup created', 'A database backup file was generated.', $adminName);
 
         echo json_encode(['success'=>true,'filename'=>$filename,'size'=>round(strlen($sql)/1024,1)]);
     } catch (Exception $e) {
@@ -132,6 +257,8 @@ if (isset($_POST['ajax_delete_backup'])) {
         echo json_encode(['success'=>false,'message'=>'File not found.']); exit;
     }
     unlink($path);
+    $adminName = $_SESSION['user_name'] ?? 'admin';
+    add_admin_notification($pdo, 'backup', 'Backup removed', 'A backup file was removed.', $adminName);
     echo json_encode(['success'=>true]);
     exit;
 }
@@ -537,6 +664,18 @@ function showProgress(title, sub) {
     $('#progressOverlay').addClass('active');
 }
 function hideProgress() { $('#progressOverlay').removeClass('active'); }
+
+var backupIdleTimer;
+function resetBackupIdleTimer() {
+    clearTimeout(backupIdleTimer);
+    backupIdleTimer = setTimeout(function() {
+        window.location.href = 'backup.php?backup_timed_out=1';
+    }, 600000);
+}
+['mousemove','keydown','scroll','click','touchstart','focus'].forEach(function(evt) {
+    document.addEventListener(evt, resetBackupIdleTimer, { passive: true });
+});
+resetBackupIdleTimer();
 
 // ── Table card selection ──────────────────────────────────────────
 $(document).on('click', '.table-card', function(e) {

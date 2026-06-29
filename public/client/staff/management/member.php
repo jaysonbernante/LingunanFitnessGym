@@ -1,5 +1,6 @@
 <?php
 require_once '../../../../app/config/connection.php';
+require_once '../../../../app/config/mail.php';
 
 // Migrations
 try { $pdo->exec("ALTER TABLE members ADD COLUMN plan_months INT DEFAULT NULL"); } catch(Exception $e) {}
@@ -27,8 +28,12 @@ if (isset($_POST['ajax_add_user'])) {
     $address    = trim($_POST['address'] ?? '');
     $rfid       = trim($_POST['rfid_number'] ?? '') ?: null;
     if (!$first_name || !$last_name) { echo json_encode(['success' => false, 'message' => 'First and last name are required.']); exit; }
+    if (!$phone) { echo json_encode(['success' => false, 'message' => 'Phone number is required.']); exit; }
+    if (!preg_match('/^[0-9]{11}$/', $phone)) { echo json_encode(['success' => false, 'message' => 'Phone number must be 11 digits with no symbols.']); exit; }
+    if (!$address) { echo json_encode(['success' => false, 'message' => 'Address is required.']); exit; }
     $username = strtolower($first_name . $last_name);
-    $password = password_hash('12345fitness', PASSWORD_DEFAULT);
+    $plainPassword = 'member1234';
+    $password = password_hash($plainPassword, PASSWORD_DEFAULT);
     try {
         // Duplicate username check
         $chk = $pdo->prepare("SELECT id FROM members WHERE username = ? LIMIT 1");
@@ -48,7 +53,16 @@ if (isset($_POST['ajax_add_user'])) {
         }
         $pdo->prepare("INSERT INTO members (first_name, last_name, username, gmail, phone, address, type, password, RFID, Joined_Date) VALUES (?, ?, ?, ?, ?, ?, 'session', ?, ?, CURDATE())")
             ->execute([$first_name, $last_name, $username, $gmail, $phone, $address, $password, $rfid]);
-        echo json_encode(['success' => true]);
+        $emailNote = '';
+        if ($gmail) {
+            $emailResult = send_registration_email($gmail, $first_name, $last_name, $username, $plainPassword);
+            if ($emailResult === true) {
+                $emailNote = ' Email notification sent.';
+            } else {
+                $emailNote = ' Email delivery failed: ' . $emailResult;
+            }
+        }
+        echo json_encode(['success' => true, 'message' => $emailNote]);
     } catch(Exception $e) { echo json_encode(['success' => false, 'message' => $e->getMessage()]); }
     exit;
 }
@@ -64,9 +78,14 @@ if (isset($_POST['ajax_add_membership'])) {
     $plan_months = intval($_POST['plan_months'] ?? 0);
     $rfid        = trim($_POST['rfid_number'] ?? '') ?: null;
     if (!$first_name || !$last_name) { echo json_encode(['success' => false, 'message' => 'First and last name are required.']); exit; }
+    if (!$phone) { echo json_encode(['success' => false, 'message' => 'Phone number is required.']); exit; }
+    if (!preg_match('/^[0-9]{11}$/', $phone)) { echo json_encode(['success' => false, 'message' => 'Phone number must be 11 digits with no symbols.']); exit; }
+    if (!$address) { echo json_encode(['success' => false, 'message' => 'Address is required.']); exit; }
     if (!$plan_months) { echo json_encode(['success' => false, 'message' => 'Please select a monthly plan.']); exit; }
+    if (!$rfid) { echo json_encode(['success' => false, 'message' => 'RFID card is required for membership registration.']); exit; }
     $username = strtolower($first_name . $last_name);
-    $password = password_hash('12345fitness', PASSWORD_DEFAULT);
+    $plainPassword = 'member1234';
+    $password = password_hash($plainPassword, PASSWORD_DEFAULT);
     $expiry   = date('Y-m-d', strtotime("+{$plan_months} months"));
     try {
         // Duplicate username check
@@ -87,7 +106,16 @@ if (isset($_POST['ajax_add_membership'])) {
         }
         $pdo->prepare("INSERT INTO members (first_name, last_name, username, gmail, phone, address, type, password, RFID, plan_months, membership_expiry, Joined_Date) VALUES (?, ?, ?, ?, ?, ?, 'member', ?, ?, ?, ?, CURDATE())")
             ->execute([$first_name, $last_name, $username, $gmail, $phone, $address, $password, $rfid, $plan_months, $expiry]);
-        echo json_encode(['success' => true]);
+        $emailNote = '';
+        if ($gmail) {
+            $emailResult = send_registration_email($gmail, $first_name, $last_name, $username, $plainPassword);
+            if ($emailResult === true) {
+                $emailNote = ' Email notification sent.';
+            } else {
+                $emailNote = ' Email delivery failed: ' . $emailResult;
+            }
+        }
+        echo json_encode(['success' => true, 'message' => $emailNote]);
     } catch(Exception $e) { echo json_encode(['success' => false, 'message' => $e->getMessage()]); }
     exit;
 }
@@ -230,6 +258,26 @@ include '../../../../component/staff_sidebar.php';
         border-radius: 8px;
         padding: 2px 10px;
         font-weight: 600;
+    }
+    .badge-type {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        white-space: nowrap;
+    }
+    .badge-type.session {
+        background: #1976d2;
+        color: #fff;
+    }
+    .badge-type.membership {
+        background: #f5c518;
+        color: #1f1f1f;
     }
     .action-btn {
         background: none;
@@ -457,7 +505,6 @@ try {
                         <th>Username</th>
                         <th>Email</th>
                         <th>Type</th>
-                        <th>Status</th>
                         <th>RFID</th>
                         <th>Joined Date</th>
                         <th>Actions</th>
@@ -465,14 +512,14 @@ try {
                 </thead>
                 <tbody>
                 <?php if (empty($members)): ?>
-                    <tr><td colspan="7" style="text-align: center;" >No members found.</td></tr>
+                    <tr><td colspan="6" style="text-align: center;" >No members found.</td></tr>
                 <?php else: ?>
                     <?php foreach ($members as $member): ?>
                         <?php
                             $username = trim($member['first_name'] . ' ' . $member['last_name']);
-                            $status = ($member['type'] === 'active')
-                                ? '<span class="badge-status badge-active">Active</span>'
-                                : '<span class="badge-status badge-inactive">Inactive</span>';
+                            $typeLabel = $member['type'] === 'session'
+                                ? '<span class="badge-type session">Session</span>'
+                                : '<span class="badge-type membership">Membership</span>';
                             $joined = $member['Joined_Date'] ? date('d M Y', strtotime($member['Joined_Date'])) : '-';
                             $auth2f = '<span class="badge-auth">Enabled</span>'; // Placeholder
                             $avatarColors = ['#1976d2','#e53935','#388e3c','#f57c00','#7b1fa2','#00838f','#c62828','#2e7d32','#1565c0','#6a1b9a'];
@@ -487,8 +534,7 @@ try {
                                 </div>
                             </td>
                             <td data-label="Email"><?= htmlspecialchars($member['gmail']) ?></td>
-                            <td data-label="Type"><?= htmlspecialchars($member['type']) ?></td>
-                            <td data-label="Status"><?= $status ?></td>
+                            <td data-label="Type"><?= $typeLabel ?></td>
                             <td data-label="RFID"><?= htmlspecialchars($member['RFID'] ?? '-') ?></td>
                             <td data-label="Joined Date"><?= htmlspecialchars($joined) ?></td>
                             <td data-label="Actions">
@@ -551,10 +597,10 @@ try {
                 </div>
                 <label>Gmail <span style="color:#666">(optional)</span></label>
                 <input type="email" name="gmail" placeholder="example@gmail.com">
-                <label>Phone <span style="color:#666">(optional)</span></label>
-                <input type="text" name="phone" placeholder="Phone number">
-                <label>Address <span style="color:#666">(optional)</span></label>
-                <input type="text" name="address" placeholder="Address">
+                <label>Phone <span style="color:#e57373">*</span></label>
+                <input type="text" name="phone" required maxlength="11" pattern="\d{11}" title="11 digits only" placeholder="Phone number">
+                <label>Address <span style="color:#e57373">*</span></label>
+                <input type="text" name="address" required placeholder="Address">
                 <label class="avail-card-toggle">
                     <input type="checkbox" id="availCardCheck" name="avail_card" value="1">
                     <span>Avail RFID Card?</span>
@@ -572,7 +618,7 @@ try {
                         <button type="button" class="rfid-clear" id="rfidSessionClear" title="Remove">&#10005;</button>
                     </div>
                 </div>
-                <p style="font-size:12px; color:#888; margin: -4px 0 12px;">Default password: <strong style="color:#aaa">12345fitness</strong></p>
+                <p style="font-size:12px; color:#888; margin: -4px 0 12px;">Default password: <strong style="color:#aaa">member1234</strong></p>
                 <div class="modal-actions">
                     <button type="submit" class="btn-submit">Register</button>
                     <button type="button" class="btn-cancel-modal" id="btnCloseModal">Cancel</button>
@@ -598,10 +644,10 @@ try {
                 </div>
                 <label>Gmail <span style="color:#666">(optional)</span></label>
                 <input type="email" name="gmail" placeholder="example@gmail.com">
-                <label>Phone <span style="color:#666">(optional)</span></label>
-                <input type="text" name="phone" placeholder="Phone number">
-                <label>Address <span style="color:#666">(optional)</span></label>
-                <input type="text" name="address" placeholder="Address">
+                <label>Phone <span style="color:#e57373">*</span></label>
+                <input type="text" name="phone" required maxlength="11" pattern="\d{11}" title="11 digits only" placeholder="Phone number">
+                <label>Address <span style="color:#e57373">*</span></label>
+                <input type="text" name="address" required placeholder="Address">
                 <label>RFID Card <span style="color:#e57373">*</span></label>
                 <input type="hidden" name="rfid_number" id="membershipRfidNumber">
                 <input class="rfid-hidden-input" id="membershipRfidScanInput" autocomplete="off" tabindex="-1">
@@ -629,7 +675,7 @@ try {
                         <div class="plan-price">&#8369;2,500</div>
                     </div>
                 </div>
-                <p style="font-size:12px; color:#888; margin: -4px 0 12px;">Default password: <strong style="color:#aaa">12345fitness</strong></p>
+                <p style="font-size:12px; color:#888; margin: -4px 0 12px;">Default password: <strong style="color:#aaa">member1234</strong></p>
                 <div class="modal-actions">
                     <button type="submit" class="btn-submit" id="btnMembershipSubmit">Register</button>
                     <button type="button" class="btn-cancel-modal" id="btnCloseMembershipModal">Cancel</button>
@@ -869,15 +915,23 @@ $(document).ready(function(){
     });
 
     // ── Add User modal ────────────────────────────────────────────────
-    $('#addUserBtn').on('click', function() {
-        $('#addUserModal').addClass('active');
+    function showAddUserSelection() {
         $('#typeSelection').show();
         $('#sessionForm').removeClass('active');
         $('#membershipForm').removeClass('active');
+    }
+    $('#addUserBtn').on('click', function() {
+        $('#addUserModal').addClass('active');
+        showAddUserSelection();
     });
     $('#btnSessionCard').on('click', function() { $('#typeSelection').hide(); $('#sessionForm').addClass('active'); });
-    $('#btnBack').on('click', function() { $('#sessionForm').removeClass('active'); $('#typeSelection').show(); });
-    function closeAddModal() {
+    $('#btnMembershipCard').on('click', function() { $('#typeSelection').hide(); $('#membershipForm').addClass('active'); });
+    $('#btnBack').on('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        showAddUserSelection();
+    });
+    function closeAddModal(reloadPage = false) {
         $('#addUserModal').removeClass('active');
         resetRfidScanner('session');
         resetRfidScanner('membership');
@@ -885,29 +939,45 @@ $(document).ready(function(){
         $('#availCardCheck').prop('checked', false);
         $('.plan-card').removeClass('selected');
         $('#selectedPlanMonths').val('');
+        if (reloadPage) { location.reload(); }
     }
-    $('#btnCloseModal').on('click', closeAddModal);
-    $('#addUserModal').on('click', function(e) { if (e.target === this) closeAddModal(); });
+    $('#btnCloseModal').on('click', function() { closeAddModal(true); });
+    $('#btnCloseMembershipModal').on('click', function() { closeAddModal(true); });
+    $('#addUserModal').on('click', function(e) { if (e.target === this) closeAddModal(true); });
 
     // Session form — AJAX submit
     $('#sessionFormEl').on('submit', function(e) {
         e.preventDefault();
+        var firstName = $(this).find('[name=first_name]').val().trim();
+        var lastName = $(this).find('[name=last_name]').val().trim();
+        var phone = $(this).find('[name=phone]').val().trim();
+        var address = $(this).find('[name=address]').val().trim();
+        var rfid = $('#rfidNumber').val().trim();
+        if (!firstName || !lastName) { showToast('First and last name are required.'); return; }
+        if (!phone) { showToast('Phone number is required.'); return; }
+        if (!/^[0-9]{11}$/.test(phone)) { showToast('Phone number must be 11 digits with no symbols.'); return; }
+        if (!address) { showToast('Address is required.'); return; }
+        if ($('#availCardCheck').is(':checked') && !rfid) { showToast('Please scan the RFID card or uncheck Avail RFID Card.'); return; }
         $.ajax({
             url: 'member.php', method: 'POST', dataType: 'json',
             data: {
                 ajax_add_user: 1,
-                first_name:  $(this).find('[name=first_name]').val(),
-                last_name:   $(this).find('[name=last_name]').val(),
-                gmail:       $(this).find('[name=gmail]').val(),
-                phone:       $(this).find('[name=phone]').val(),
-                address:     $(this).find('[name=address]').val(),
-                rfid_number: $('#rfidNumber').val()
+                first_name:  firstName,
+                last_name:   lastName,
+                gmail:       $(this).find('[name=gmail]').val().trim(),
+                phone:       phone,
+                address:     address,
+                rfid_number: rfid
             },
             success: function(res) {
                 if (res.success) {
                     closeAddModal();
                     $('#sessionFormEl')[0].reset();
-                    showToast('Session user registered successfully!', 'success');
+                    var msg = 'Session user ' + firstName + ' ' + lastName + ' registered successfully!';
+                    if (rfid) msg += ' RFID access success.';
+                    else msg += ' No RFID assigned.';
+                    if (res.message) msg += res.message;
+                    showToast(msg, 'success');
                     fetchMembers();
                 } else showToast(res.message || 'Failed to add user.');
             },
@@ -916,15 +986,19 @@ $(document).ready(function(){
     });
 
     // ── Membership modal ──────────────────────────────────────────────
-    $('#btnMembershipCard').on('click', function() { $('#typeSelection').hide(); $('#membershipForm').addClass('active'); });
-    $('#btnBackMembership').on('click', function() {
+    $('#btnBackMembership').on('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if ($('#typeSelection').is(':visible')) {
+            closeAddModal(true);
+            return;
+        }
         $('#membershipForm').removeClass('active');
         $('#typeSelection').show();
         resetRfidScanner('membership');
         $('.plan-card').removeClass('selected');
         $('#selectedPlanMonths').val('');
     });
-    $('#btnCloseMembershipModal').on('click', closeAddModal);
 
     $(document).on('click', '.plan-card', function() {
         $('.plan-card').removeClass('selected');
@@ -934,25 +1008,37 @@ $(document).ready(function(){
 
     $('#membershipFormEl').on('submit', function(e) {
         e.preventDefault();
-        if (!$('#selectedPlanMonths').val()) { showToast('Please select a monthly plan.'); return; }
-        if (!$('#membershipRfidNumber').val()) { showToast('Please scan the RFID card.'); return; }
+        var firstName = $(this).find('[name=first_name]').val().trim();
+        var lastName = $(this).find('[name=last_name]').val().trim();
+        var phone = $(this).find('[name=phone]').val().trim();
+        var address = $(this).find('[name=address]').val().trim();
+        var planMonths = $('#selectedPlanMonths').val();
+        var rfid = $('#membershipRfidNumber').val().trim();
+        if (!firstName || !lastName) { showToast('First and last name are required.'); return; }
+        if (!phone) { showToast('Phone number is required.'); return; }
+        if (!/^[0-9]{11}$/.test(phone)) { showToast('Phone number must be 11 digits with no symbols.'); return; }
+        if (!address) { showToast('Address is required.'); return; }
+        if (!planMonths) { showToast('Please select a monthly plan.'); return; }
+        if (!rfid) { showToast('Please scan the RFID card.'); return; }
         $.ajax({
             url: 'member.php', method: 'POST', dataType: 'json',
             data: {
                 ajax_add_membership: 1,
-                first_name:  $(this).find('[name=first_name]').val(),
-                last_name:   $(this).find('[name=last_name]').val(),
-                gmail:       $(this).find('[name=gmail]').val(),
-                phone:       $(this).find('[name=phone]').val(),
-                address:     $(this).find('[name=address]').val(),
-                rfid_number: $('#membershipRfidNumber').val(),
-                plan_months: $('#selectedPlanMonths').val()
+                first_name:  firstName,
+                last_name:   lastName,
+                gmail:       $(this).find('[name=gmail]').val().trim(),
+                phone:       phone,
+                address:     address,
+                rfid_number: rfid,
+                plan_months: planMonths
             },
             success: function(res) {
                 if (res.success) {
                     closeAddModal();
                     $('#membershipFormEl')[0].reset();
-                    showToast('Member registered successfully!', 'success');
+                    var msg = 'Member ' + firstName + ' ' + lastName + ' registered successfully! RFID access success.';
+                    if (res.message) msg += res.message;
+                    showToast(msg, 'success');
                     fetchMembers();
                 } else showToast(res.message || 'Failed to register member.');
             },

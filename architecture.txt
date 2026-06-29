@@ -2,7 +2,8 @@ LingunanFitnessGym
 │   app
 │   ├── api
 │   └── config
-│       └── connection.php
+│       ├── connection.php
+│       └── mail.php
 │   assets
 │   ├── css
 │   │   ├── admin_header.css
@@ -18,15 +19,18 @@ LingunanFitnessGym
 │   ├── ico
 │   │   ├── dashboard_active.png
 │   │   ├── dashboard.png
+│   │   ├── DATAMEX Jayson Bernante MOA!!!.docx
 │   │   ├── member_active.png
 │   │   ├── member.png
+│   │   ├── user.png
 │   │   ├── wallet_active.png
 │   │   └── wallet.png
 │   ├── image
 │   │   ├── products
 │   │   │   ├── prod_1776096467_4347be79.png
 │   │   │   ├── prod_1776182377_a1ea986e.png
-│   │   │   └── prod_1776262814_8334df77.jpg
+│   │   │   ├── prod_1776262814_8334df77.jpg
+│   │   │   └── prod_1782660279_73837437.png
 │   │   ├── card.png
 │   │   ├── gallerybackground.jpg
 │   │   ├── hero-background.jpg
@@ -41,7 +45,11 @@ LingunanFitnessGym
 │   ├── backup_full_20260415_162622.sql
 │   ├── backup_full_20260428_114030.sql
 │   ├── backup_full_20260528_025900.sql
-│   └── dbgym.sql
+│   ├── backup_full_20260628_232214.sql
+│   ├── backup_full_20260628_232244.sql
+│   ├── backup_full_20260628_232258.sql
+│   ├── dbgym.sql
+│   └── support_messages.txt
 │   component
 │   ├── admin_header.php
 │   ├── admin_sidebar.php
@@ -53,12 +61,15 @@ LingunanFitnessGym
 │   ├── dbgym.sql
 │   └── revenue-report-2026.pdf
 │   docs
+│   ├── database_design.md
+│   └── user_interface_design.md
 │   public
 │   ├── client
 │   │   ├── admin
 │   │   │   ├── management
 │   │   │   │   ├── member.php
 │   │   │   │   ├── report.php
+│   │   │   │   ├── staff_ajax.php
 │   │   │   │   ├── staff.php
 │   │   │   │   ├── visitorLog.php
 │   │   │   │   └── wallet.php
@@ -102,4 +113,9 @@ LingunanFitnessGym
 │   connection.txt
 │   dbgym.sql
 │   index.php
+│   temp_mail_test.php
+│   temp_profile_debug.php
+│   temp_profile_test.php
+│   temp_profile_verify.php
+│   temp_profile_verify2.php
 │   test.php
