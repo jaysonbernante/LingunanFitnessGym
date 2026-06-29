@@ -1,7 +1,6 @@
 <?php
 date_default_timezone_set('Asia/Manila');
 
-
 $host = 'sql201.infinityfree.com';
 $db   = 'if0_41655270_dbgym';
 $user = 'if0_41655270'; // Change if your MySQL user is different
