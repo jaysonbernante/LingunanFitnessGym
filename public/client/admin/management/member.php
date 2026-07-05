@@ -152,7 +152,8 @@ if (isset($_POST['ajax_add_user'])) {
     if (!preg_match('/^[0-9]{11}$/', $phone)) { echo json_encode(['success' => false, 'message' => 'Phone number must be 11 digits with no symbols.']); exit; }
     if (!$address) { echo json_encode(['success' => false, 'message' => 'Address is required.']); exit; }
     $username = strtolower($first_name . $last_name);
-    $plainPassword = 'member1234';
+    $defaultMemberPassword = 'member1234';
+    $plainPassword = $defaultMemberPassword;
     $password = password_hash($plainPassword, PASSWORD_DEFAULT);
     try {
         // Duplicate username check
@@ -210,7 +211,8 @@ if (isset($_POST['ajax_add_membership'])) {
     if (!$plan_months) { echo json_encode(['success' => false, 'message' => 'Please select a monthly plan.']); exit; }
     if (!$rfid) { echo json_encode(['success' => false, 'message' => 'RFID card is required for membership registration.']); exit; }
     $username = strtolower($first_name . $last_name);
-    $plainPassword = 'member1234';
+    $defaultMemberPassword = 'member1234';
+    $plainPassword = $defaultMemberPassword;
     $password = password_hash($plainPassword, PASSWORD_DEFAULT);
     $expiry   = date('Y-m-d', strtotime("+{$plan_months} months"));
     try {
@@ -827,7 +829,7 @@ try {
         <button type="button" id="btnArchiveHistory" class="tab-btn" style="padding:8px 18px; border-radius:8px; border:none; background:#f57c00; color:#fff; font-weight:600; cursor:pointer;">📋 Archive History</button>
         <button type="button" id="btnBlockList" class="tab-btn" style="padding:8px 18px; border-radius:8px; border:none; background:#d32f2f; color:#fff; font-weight:600; cursor:pointer;">🚫 Block List</button>
         <button type="button" id="btnLookupRfid" class="tab-btn" style="padding:8px 18px; border-radius:8px; border:none; background:#1976d2; color:#fff; font-weight:600; cursor:pointer;">🔍 RFID Scan</button>
-        <button type="button" id="addUserBtn" class="tab-btn" style="padding:8px 18px; border-radius:8px; border:none; background:#1976d2; color:#fff; font-weight:600; cursor:pointer;">+ Add User</button>
+        <button type="button" id="addUserBtn" class="tab-btn" style="padding:8px 18px; border-radius:8px; border:none; background:#1976d2; color:#fff; font-weight:600; cursor:pointer;">+ Add Member</button>
     </div>
 </div>
         <div style="margin-top:24px; background:#2b2b2b; padding:16px; border-radius:14px;" id="memberSection">

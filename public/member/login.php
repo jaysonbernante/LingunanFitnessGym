@@ -9,7 +9,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $sql = "SELECT * FROM members 
             WHERE (username = :username OR gmail = :gmail) 
-            AND type = 'member' 
+            AND type IN ('member', 'session') 
             LIMIT 1";
 
     $stmt = $pdo->prepare($sql);

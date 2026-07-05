@@ -6,16 +6,90 @@ if (!isset($pdo)) {
 require_once __DIR__ . '/session_check.php';
 require_once __DIR__ . '/../app/config/mail.php';
 
+$_currentUserRole = $_SESSION['user_role'] ?? 'super_admin';
+$adminNotificationTypeRestriction = $_currentUserRole === 'staff'
+    ? " AND type IN ('member','wallet','ecommerce','support')"
+    : '';
+
 // AJAX: fetch unread notifications (JSON)
 if (isset($_GET['ajax_fetch_notifications'])) {
     header('Content-Type: application/json');
     try {
-        $rows = $pdo->query("SELECT id, type, title, message, created_by, DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') as created_at FROM admin_notifications WHERE is_read = 0 ORDER BY created_at DESC LIMIT 20")->fetchAll();
-        // add formatted subtitle for client convenience
-        foreach ($rows as &$r) {
-            $r['sub'] = date('M j H:i', strtotime($r['created_at']));
+        $_ajaxNotifications = [];
+        
+        // New members today
+        try {
+            $rows = $pdo->query("SELECT first_name, last_name FROM members WHERE DATE(Joined_Date)=CURDATE() ORDER BY id DESC LIMIT 5")->fetchAll();
+            foreach ($rows as $r) {
+                $_ajaxNotifications[] = ['icon'=>'&#127381;','color'=>'#1976d2','title'=>htmlspecialchars(trim($r['first_name'].' '.$r['last_name'])).' joined','sub'=>'New member registered today','type'=>'member'];
+            }
+        } catch(Exception $e) {}
+        
+        // Expiring memberships within 7 days
+        try {
+            $rows = $pdo->query("SELECT first_name, last_name, membership_expiry FROM members WHERE type='member' AND membership_expiry BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY) ORDER BY membership_expiry ASC LIMIT 5")->fetchAll();
+            foreach ($rows as $r) {
+                $days = (int)((strtotime($r['membership_expiry']) - strtotime('today')) / 86400);
+                $when = $days === 0 ? 'today' : "in $days day".($days>1?'s':'');
+                $_ajaxNotifications[] = ['icon'=>'&#9203;','color'=>'#f57c00','title'=>htmlspecialchars(trim($r['first_name'].' '.$r['last_name'])),'sub'=>'Membership expires '.$when,'type'=>'member'];
+            }
+        } catch(Exception $e) {}
+        
+        // Low stock
+        try {
+            $rows = $pdo->query("SELECT product_name, quantity FROM products WHERE quantity <= 5 ORDER BY quantity ASC LIMIT 5")->fetchAll();
+            foreach ($rows as $r) {
+                $_ajaxNotifications[] = ['icon'=>'&#128230;','color'=>'#e53935','title'=>htmlspecialchars($r['product_name']),'sub'=>'Only '.$r['quantity'].' left in stock','type'=>'ecommerce'];
+            }
+        } catch(Exception $e) {}
+        
+        // Dynamic admin actions
+        try {
+            $rows = $pdo->query("SELECT id, type, title, message, DATE_FORMAT(created_at,'%Y-%m-%d %H:%i:%s') as created_at FROM admin_notifications WHERE is_read = 0" . $adminNotificationTypeRestriction . " ORDER BY created_at DESC LIMIT 10")->fetchAll();
+            foreach ($rows as $r) {
+                $type = $r['type'] ?? 'system';
+                $icon = '&#128276;';
+                $color = '#f5c518';
+                if ($type === 'wallet') { $icon = '&#128176;'; $color = '#388e3c'; }
+                elseif ($type === 'ecommerce') { $icon = '&#128230;'; $color = '#e53935'; }
+                elseif ($type === 'staff') { $icon = '&#128100;'; $color = '#1976d2'; }
+                elseif ($type === 'backup') { $icon = '&#128190;'; $color = '#1976d2'; }
+                $sub = htmlspecialchars($r['message']);
+                if (!empty($r['created_at'])) $sub .= ' · ' . date('M j H:i', strtotime($r['created_at']));
+                $_ajaxNotifications[] = ['id' => intval($r['id']), 'icon'=>$icon,'color'=>$color,'title'=>htmlspecialchars($r['title']),'sub'=>$sub,'type'=>$type];
+            }
+        } catch(Exception $e) {}
+        
+        if ($_currentUserRole !== 'staff') {
+            // Password reset requests
+            try {
+                $rows = $pdo->query("SELECT username, COUNT(*) as count FROM password_reset_requests WHERE status = 'pending' GROUP BY username ORDER BY created_at DESC LIMIT 5")->fetchAll();
+                foreach ($rows as $r) {
+                    $_ajaxNotifications[] = ['icon'=>'&#128274;','color'=>'#d32f2f','title'=>htmlspecialchars($r['username']).' - password reset','sub'=>'Pending approval','type'=>'staff'];
+                }
+            } catch(Exception $e) {}
         }
-        echo json_encode(['count' => count($rows), 'items' => $rows]);
+        
+        // Wallet transactions (cash-in, refund, correction)
+        try {
+            $rows = $pdo->query("SELECT username, transaction_type, amount FROM transactions WHERE transaction_type IN ('cash_in', 'refund', 'correction') ORDER BY created_at DESC LIMIT 5")->fetchAll();
+            foreach ($rows as $r) {
+                $typeLabel = $r['transaction_type'] === 'cash_in' ? 'Cash In' : ($r['transaction_type'] === 'refund' ? 'Refund' : 'Correction');
+                $_ajaxNotifications[] = ['icon'=>'&#128176;','color'=>'#388e3c','title'=>htmlspecialchars($r['username']),'sub'=>$typeLabel.' - ₱'.number_format($r['amount'], 2),'type'=>'wallet'];
+            }
+        } catch(Exception $e) {}
+        
+        // Backup access attempts
+        if ($_currentUserRole !== 'staff') {
+            try {
+                $rows = $pdo->query("SELECT username, accessed_at FROM backup_logs ORDER BY accessed_at DESC LIMIT 3")->fetchAll();
+                foreach ($rows as $r) {
+                    $_ajaxNotifications[] = ['icon'=>'&#128190;','color'=>'#1976d2','title'=>htmlspecialchars($r['username']).' accessed backup','sub'=>'Backup system accessed','type'=>'backup'];
+                }
+            } catch(Exception $e) {}
+        }
+        
+        echo json_encode(['count' => count($_ajaxNotifications), 'items' => $_ajaxNotifications]);
     } catch (Exception $e) {
         echo json_encode(['count' => 0, 'items' => [], 'error' => $e->getMessage()]);
     }
@@ -28,7 +102,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_mark_notificatio
     $nid = intval($_POST['id'] ?? 0);
     if ($nid > 0) {
         try {
-            $pdo->prepare("UPDATE admin_notifications SET is_read = 1 WHERE id = ?")->execute([$nid]);
+            $updateStmt = $pdo->prepare(
+                $_currentUserRole === 'staff'
+                    ? "UPDATE admin_notifications SET is_read = 1 WHERE id = ? AND type IN ('member','wallet','ecommerce','support')"
+                    : "UPDATE admin_notifications SET is_read = 1 WHERE id = ?"
+            );
+            $updateStmt->execute([$nid]);
             echo json_encode(['success' => true]);
         } catch (Exception $e) {
             echo json_encode(['success' => false, 'error' => $e->getMessage()]);
@@ -165,7 +244,7 @@ if (isset($pdo)) {
     } catch(Exception $e) {}
     // Dynamic admin actions
     try {
-        $rows = $pdo->query("SELECT id, type, title, message, DATE_FORMAT(created_at,'%Y-%m-%d %H:%i:%s') as created_at FROM admin_notifications WHERE is_read = 0 ORDER BY created_at DESC LIMIT 10")->fetchAll();
+        $rows = $pdo->query("SELECT id, type, title, message, DATE_FORMAT(created_at,'%Y-%m-%d %H:%i:%s') as created_at FROM admin_notifications WHERE is_read = 0" . $adminNotificationTypeRestriction . " ORDER BY created_at DESC LIMIT 10")->fetchAll();
         foreach ($rows as $r) {
             $type = $r['type'] ?? 'system';
             $icon = '&#128276;';
@@ -180,13 +259,15 @@ if (isset($pdo)) {
             $_notifications[] = ['id' => intval($r['id']), 'icon'=>$icon,'color'=>$color,'title'=>htmlspecialchars($r['title']),'sub'=>$sub,'type'=>$type];
         }
     } catch(Exception $e) {}
-    // Password reset requests
-    try {
-        $rows = $pdo->query("SELECT username, COUNT(*) as count FROM password_reset_requests WHERE status = 'pending' GROUP BY username ORDER BY created_at DESC LIMIT 5")->fetchAll();
-        foreach ($rows as $r) {
-            $_notifications[] = ['icon'=>'&#128274;','color'=>'#d32f2f','title'=>htmlspecialchars($r['username']).' - password reset','sub'=>'Pending approval','type'=>'staff'];
-        }
-    } catch(Exception $e) {}
+    if ($_currentUserRole !== 'staff') {
+        // Password reset requests
+        try {
+            $rows = $pdo->query("SELECT username, COUNT(*) as count FROM password_reset_requests WHERE status = 'pending' GROUP BY username ORDER BY created_at DESC LIMIT 5")->fetchAll();
+            foreach ($rows as $r) {
+                $_notifications[] = ['icon'=>'&#128274;','color'=>'#d32f2f','title'=>htmlspecialchars($r['username']).' - password reset','sub'=>'Pending approval','type'=>'staff'];
+            }
+        } catch(Exception $e) {}
+    }
     // Wallet transactions (cash-in, refund, correction)
     try {
         $rows = $pdo->query("SELECT username, transaction_type, amount FROM transactions WHERE transaction_type IN ('cash_in', 'refund', 'correction') ORDER BY created_at DESC LIMIT 5")->fetchAll();
@@ -196,12 +277,14 @@ if (isset($pdo)) {
         }
     } catch(Exception $e) {}
     // Backup access attempts
-    try {
-        $rows = $pdo->query("SELECT username, accessed_at FROM backup_logs ORDER BY accessed_at DESC LIMIT 3")->fetchAll();
-        foreach ($rows as $r) {
-            $_notifications[] = ['icon'=>'&#128190;','color'=>'#1976d2','title'=>htmlspecialchars($r['username']).' accessed backup','sub'=>'Backup system accessed','type'=>'backup'];
-        }
-    } catch(Exception $e) {}
+    if ($_currentUserRole !== 'staff') {
+        try {
+            $rows = $pdo->query("SELECT username, accessed_at FROM backup_logs ORDER BY accessed_at DESC LIMIT 3")->fetchAll();
+            foreach ($rows as $r) {
+                $_notifications[] = ['icon'=>'&#128190;','color'=>'#1976d2','title'=>htmlspecialchars($r['username']).' accessed backup','sub'=>'Backup system accessed','type'=>'backup'];
+            }
+        } catch(Exception $e) {}
+    }
 }
 
 // Detect if we're in a subdirectory (management/ or system/) or root client folder
@@ -211,8 +294,7 @@ $_linkMap = [
     'member'     => $_inSub ? '../management/member.php'  : 'management/member.php',
     'ecommerce'  => $_inSub ? '../system/Ecommerce.php'   : 'system/Ecommerce.php',
     'staff'      => $_inSub ? '../management/staff.php'   : 'management/staff.php',
-    'wallet'     => $_inSub ? '../management/wallet.php'  : 'management/wallet.php',
-    'backup'     => $_inSub ? '../system/backup.php'      : 'system/backup.php',
+    'wallet'     => $_inSub ? '../management/wallet.php'  : 'management/wallet.php',    'support'    => $_inSub ? '../system/support.php'    : 'system/support.php',    'backup'     => $_inSub ? '../system/backup.php'      : 'system/backup.php',
 ];
 $_notifCount = count($_notifications);
 ?>
@@ -772,11 +854,15 @@ $_notifCount = count($_notifications);
         list.addEventListener('click', function(e){
             var item = e.target.closest('.notif-item');
             if (!item) return;
-            e.preventDefault();
             e.stopPropagation();
             var id = item.getAttribute('data-notif-id');
             var href = item.getAttribute('href');
-            markNotificationRead(id, href);
+            if (id) {
+                markNotificationRead(id);
+            }
+            if (href) {
+                window.location.href = href;
+            }
         });
     }
 

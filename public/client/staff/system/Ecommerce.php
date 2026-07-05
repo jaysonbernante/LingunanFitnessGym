@@ -12,8 +12,11 @@ $pdo->exec("CREATE TABLE IF NOT EXISTS products (
     date_stocked DATE DEFAULT (CURRENT_DATE),
     is_archived TINYINT(1) DEFAULT 0
 )");
+
+// Migrate: add is_archived column if not present
 try { $pdo->exec("ALTER TABLE products ADD COLUMN is_archived TINYINT(1) DEFAULT 0"); } catch(Exception $e){}
 
+// One-time: create product stock history table
 $pdo->exec("CREATE TABLE IF NOT EXISTS product_stock_history (
     id INT AUTO_INCREMENT PRIMARY KEY,
     product_id INT NOT NULL,
@@ -45,6 +48,14 @@ try { $pdo->exec("ALTER TABLE sales ADD COLUMN transaction_id VARCHAR(32) DEFAUL
 if (isset($_GET['ajax_products'])) {
     header('Content-Type: application/json');
     $rows = $pdo->query("SELECT * FROM products WHERE is_archived = 0 ORDER BY product_name ASC")->fetchAll();
+    echo json_encode($rows);
+    exit;
+}
+
+// AJAX: get archived products
+if (isset($_GET['ajax_archived_products'])) {
+    header('Content-Type: application/json');
+    $rows = $pdo->query("SELECT * FROM products WHERE is_archived = 1 ORDER BY product_name ASC")->fetchAll();
     echo json_encode($rows);
     exit;
 }
@@ -108,6 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_sale'])) {
             $pdo->prepare("INSERT INTO sales (product_id, product_name, qty_sold, unit_price, total, payment_method, member_name, transacted_by, transaction_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
                 ->execute([$pid, $data['product']['product_name'], $data['qty'], $data['product']['price'], $data['lineTotal'], $payMethod, $memberName, $transactedBy, $txnId]);
         }
+        add_admin_notification($pdo, 'ecommerce', 'Sale completed', 'A product sale was completed in the ecommerce module.', $transactedBy);
         $pdo->commit();
         echo json_encode(['success' => true, 'total' => $total]);
     } catch (Exception $e) {
@@ -145,13 +157,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_add_product'])) 
     }
 
     if ($editId > 0) {
-        // Restock: add qty, optionally update price/image
-        if ($img !== '') {
-            $pdo->prepare("UPDATE products SET quantity = quantity + ?, price = ?, img = ? WHERE id = ?")->execute([$qty, $price, $img, $editId]);
+        // Restock or decrease: change qty, optionally update price/image
+        $changeType = trim($_POST['change_type'] ?? 'add');
+        $stmt = $pdo->prepare("SELECT quantity FROM products WHERE id = ?"); $stmt->execute([$editId]); $cur = $stmt->fetch();
+        $prevQty = $cur ? intval($cur['quantity']) : 0;
+        if ($changeType === 'decrease') {
+            $newQty = max(0, $prevQty - $qty);
+            if ($img !== '') {
+                $pdo->prepare("UPDATE products SET quantity = ?, price = ?, img = ? WHERE id = ?")->execute([$newQty, $price, $img, $editId]);
+            } else {
+                $pdo->prepare("UPDATE products SET quantity = ?, price = ? WHERE id = ?")->execute([$newQty, $price, $editId]);
+            }
+            // history
+            $pdo->prepare("INSERT INTO product_stock_history (product_id, change_qty, prev_qty, new_qty, note, changed_by) VALUES (?, ?, ?, ?, ?, ?)")
+                ->execute([$editId, -$qty, $prevQty, $newQty, 'Decreased stock', $_SESSION['user_name'] ?? 'admin']);
+            add_admin_notification($pdo, 'ecommerce', 'Inventory decreased', 'Product stock was decreased in the ecommerce module.', $_SESSION['user_name'] ?? 'admin');
+            echo json_encode(['success' => true, 'mode' => 'decrease']);
         } else {
-            $pdo->prepare("UPDATE products SET quantity = quantity + ?, price = ? WHERE id = ?")->execute([$qty, $price, $editId]);
+            $newQty = $prevQty + $qty;
+            if ($img !== '') {
+                $pdo->prepare("UPDATE products SET quantity = quantity + ?, price = ?, img = ? WHERE id = ?")->execute([$qty, $price, $img, $editId]);
+            } else {
+                $pdo->prepare("UPDATE products SET quantity = quantity + ?, price = ? WHERE id = ?")->execute([$qty, $price, $editId]);
+            }
+            // history
+            $pdo->prepare("INSERT INTO product_stock_history (product_id, change_qty, prev_qty, new_qty, note, changed_by) VALUES (?, ?, ?, ?, ?, ?)")
+                ->execute([$editId, $qty, $prevQty, $prevQty + $qty, 'Added stock', $_SESSION['user_name'] ?? 'admin']);
+            add_admin_notification($pdo, 'ecommerce', 'Inventory updated', 'Product stock was increased in the ecommerce module.', $_SESSION['user_name'] ?? 'admin');
+            echo json_encode(['success' => true, 'mode' => 'restock']);
         }
-        echo json_encode(['success' => true, 'mode' => 'restock']);
     } else {
         // Check if product with same name already exists → merge stock
         $existing = $pdo->prepare("SELECT id FROM products WHERE LOWER(product_name) = LOWER(?)");
@@ -163,9 +197,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_add_product'])) 
             } else {
                 $pdo->prepare("UPDATE products SET quantity = quantity + ?, price = ? WHERE id = ?")->execute([$qty, $price, $found['id']]);
             }
+            add_admin_notification($pdo, 'ecommerce', 'Inventory updated', 'Existing product stock was updated in the ecommerce module.', $_SESSION['user_name'] ?? 'admin');
             echo json_encode(['success' => true, 'mode' => 'merged']);
         } else {
             $pdo->prepare("INSERT INTO products (product_name, quantity, price, img, date_stocked) VALUES (?, ?, ?, ?, CURDATE())")->execute([$name, $qty, $price, $img]);
+            add_admin_notification($pdo, 'ecommerce', 'New product added', 'A new product was added to inventory.', $_SESSION['user_name'] ?? 'admin');
             echo json_encode(['success' => true, 'mode' => 'add']);
         }
     }
@@ -197,24 +233,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_archive_product'
     header('Content-Type: application/json');
     $id = intval($_POST['id'] ?? 0);
     $pdo->prepare("UPDATE products SET is_archived = 1 WHERE id = ?")->execute([$id]);
+    add_admin_notification($pdo, 'ecommerce', 'Product archived', 'A product was archived from inventory.', $_SESSION['user_name'] ?? 'admin');
     echo json_encode(['success' => true]);
     exit;
 }
 
-// AJAX: unarchive
+// AJAX: unarchive product
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_unarchive_product'])) {
     header('Content-Type: application/json');
     $id = intval($_POST['id'] ?? 0);
     $pdo->prepare("UPDATE products SET is_archived = 0 WHERE id = ?")->execute([$id]);
+    add_admin_notification($pdo, 'ecommerce', 'Product restored', 'A product was restored to inventory.', $_SESSION['user_name'] ?? 'admin');
     echo json_encode(['success' => true]);
     exit;
 }
 
-// AJAX: permanent delete
+// AJAX: permanently delete product
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_permanent_delete_product'])) {
     header('Content-Type: application/json');
     $id = intval($_POST['id'] ?? 0);
     $pdo->prepare("DELETE FROM products WHERE id = ?")->execute([$id]);
+    add_admin_notification($pdo, 'ecommerce', 'Product deleted', 'A product was permanently deleted from inventory.', $_SESSION['user_name'] ?? 'admin');
     echo json_encode(['success' => true]);
     exit;
 }
@@ -272,6 +311,22 @@ if (isset($_GET['ajax_sale_history'])) {
     $result = [];
     foreach ($order as $k) $result[] = $grouped[$k];
     echo json_encode($result);
+    exit;
+}
+
+// AJAX: stock history
+if (isset($_GET['ajax_stock_history'])) {
+    header('Content-Type: application/json');
+    $productId = intval($_GET['product_id'] ?? 0);
+    if ($productId > 0) {
+        $stmt = $pdo->prepare("SELECT * FROM product_stock_history WHERE product_id = ? ORDER BY created_at DESC LIMIT 500");
+        $stmt->execute([$productId]);
+        $rows = $stmt->fetchAll();
+    } else {
+        $stmt = $pdo->query("SELECT h.*, p.product_name FROM product_stock_history h LEFT JOIN products p ON p.id = h.product_id ORDER BY h.created_at DESC LIMIT 500");
+        $rows = $stmt->fetchAll();
+    }
+    echo json_encode($rows);
     exit;
 }
 
@@ -425,8 +480,9 @@ include '../../../../component/staff_sidebar.php';
     .stock-card .sc-date { font-size: 11px; color: #666; margin-top: 4px; }
     .stock-card-actions { display: flex; gap: 6px; justify-content: center; margin-top: 10px; }
     .sc-btn { padding: 5px 14px; border-radius: 8px; border: none; font-size: 12px; font-weight: 600; cursor: pointer; }
-    .sc-btn.restock { background: #388e3c; color: #fff; }
-    .sc-btn.delete  { background: #c62828; color: #fff; }
+    .sc-btn.manage { background: #388e3c; color: #fff; }
+    .sc-btn.archive  { background: #c62828; color: #fff; }
+    .sc-btn.unarchive { background: #1976d2; color: #fff; }
     .sc-qty-badge {
         position: absolute; top: 8px; right: 8px;
         background: #444; color: #fff; font-size: 11px; font-weight: 700;
@@ -499,13 +555,22 @@ include '../../../../component/staff_sidebar.php';
         background: #1a1a1a; border-radius: 10px; padding: 12px 14px; margin-top: 10px;
     }
     /* History Table */
-    .history-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .history-table-container { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .history-table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 800px; }
     .history-table th { background: #2c2c2c; color: #f5c518; padding: 10px 14px; text-align: left; border-bottom: 2px solid #444; white-space: nowrap; }
     .history-table td { padding: 9px 14px; border-bottom: 1px solid #333; color: #ddd; vertical-align: middle; }
     .history-table tbody tr:hover { background: #252525; }
     .badge-pay { display: inline-block; padding: 2px 10px; border-radius: 8px; font-size: 12px; font-weight: 700; }
     .badge-pay.cash { background: #388e3c; color: #fff; }
     .badge-pay.card { background: #1976d2; color: #fff; }
+    /* Mobile stacked table */
+    @media (max-width: 600px) {
+        .history-table { min-width: 0; }
+        .history-table thead { display: none; }
+        .history-table tbody tr.history-row { display: block; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.03); border-radius: 8px; padding: 8px; background: #1b1b1b; }
+        .history-table tbody tr.history-row td { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-bottom: none; white-space: normal; }
+        .history-table tbody tr.history-row td::before { content: attr(data-label); color: #f5c518; font-weight: 700; margin-right: 8px; width: 110px; flex: 0 0 110px; }
+    }
 </style>
 <body>
 <div class="ec-content">
@@ -515,7 +580,9 @@ include '../../../../component/staff_sidebar.php';
     <div class="ec-tabs">
         <div class="ec-tab active" data-tab="sell">🛒 Sell</div>
         <div class="ec-tab" data-tab="stock">📦 Stock</div>
-        <div class="ec-tab" data-tab="history">📋 History</div>
+        <div class="ec-tab" data-tab="archive">🗄️ Archive</div>
+        <div class="ec-tab" data-tab="stock_history">📜 Stock History</div>
+        <div class="ec-tab" data-tab="history">📋 Sales History</div>
     </div>
 
     <!-- ── SELL PANEL ── -->
@@ -547,13 +614,49 @@ include '../../../../component/staff_sidebar.php';
         </div>
     </div>
 
+    <!-- ── ARCHIVE PANEL ── -->
+    <div class="ec-panel" id="panel-archive">
+        <div class="stock-toolbar">
+            <input type="text" id="archiveSearch" placeholder="Search archived product...">
+        </div>
+        <div class="stock-grid" id="archiveGrid">
+            <div style="color:#666; grid-column:1/-1; padding:40px 0; text-align:center;">Loading...</div>
+        </div>
+    </div>
+
+    <!-- ── STOCK HISTORY PANEL ── -->
+    <div class="ec-panel" id="panel-stock_history">
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:20px;flex-wrap:wrap;">
+            <input type="text" id="stockHistorySearch" placeholder="Search product or note..." style="padding:8px 12px;border-radius:8px;border:1px solid #444;background:#1a1a1a;color:#fff;font-size:14px;width:280px;">
+            <button id="btnStockHistoryRefresh" style="padding:8px 18px;border-radius:8px;border:none;background:#1976d2;color:#fff;font-weight:600;cursor:pointer;">↻ Refresh</button>
+        </div>
+        <div class="history-table-container">
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Product</th>
+                        <th>Change</th>
+                        <th>Prev</th>
+                        <th>New</th>
+                        <th>By</th>
+                        <th>Note</th>
+                    </tr>
+                </thead>
+                <tbody id="stockHistoryBody">
+                    <tr><td colspan="8" style="text-align:center;color:#666;padding:40px 0;">Click the "Stock History" tab to load records.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <!-- ── HISTORY PANEL ── -->
     <div class="ec-panel" id="panel-history">
         <div style="display:flex;gap:10px;align-items:center;margin-bottom:20px;flex-wrap:wrap;">
             <input type="text" id="historySearch" placeholder="Search product, member, staff..." style="padding:8px 12px;border-radius:8px;border:1px solid #444;background:#1a1a1a;color:#fff;font-size:14px;width:280px;">
             <button id="btnHistoryRefresh" style="padding:8px 18px;border-radius:8px;border:none;background:#1976d2;color:#fff;font-weight:600;cursor:pointer;">↻ Refresh</button>
         </div>
-        <div style="overflow-x:auto;">
+        <div class="history-table-container">
             <table class="history-table">
                 <thead>
                     <tr>
@@ -964,6 +1067,8 @@ $(document).ready(function() {
         if (tab === 'stock') renderStockGrid($('#stockSearch').val());
         if (tab === 'sell') renderSellGrid($('#sellSearch').val());
         if (tab === 'history') loadSaleHistory($('#historySearch').val());
+        if (tab === 'archive') renderArchivedGrid($('#archiveSearch').val());
+        if (tab === 'stock_history') loadStockHistory($('#stockHistorySearch').val());
     });
 
     // History expand/collapse
@@ -978,8 +1083,10 @@ $(document).ready(function() {
     // Search
     $('#sellSearch').on('keyup', function() { renderSellGrid($(this).val()); });
     $('#stockSearch').on('keyup', function() { renderStockGrid($(this).val()); });
+    $('#archiveSearch').on('keyup', function() { renderArchivedGrid($(this).val()); });
     $('#historySearch').on('keyup', function() { loadSaleHistory($(this).val()); });
     $('#btnHistoryRefresh').on('click', function() { loadSaleHistory($('#historySearch').val()); });
+    $('#btnStockHistoryRefresh').on('click', function() { loadStockHistory($('#stockHistorySearch').val()); });
 
     // Image preview
     $('#pImg').on('change', function() {
@@ -1014,6 +1121,48 @@ $(document).ready(function() {
     loadProducts(() => { renderSellGrid(); });
 });
 
+function renderArchivedGrid(filter) {
+    filter = (filter || '').toLowerCase();
+    const grid = $('#archiveGrid');
+    grid.html('<div style="color:#666; grid-column:1/-1; padding:40px 0; text-align:center;">Loading...</div>');
+    $.getJSON('Ecommerce.php?ajax_archived_products=1', function(data){
+        const list = filter ? data.filter(p => p.product_name.toLowerCase().includes(filter)) : data;
+        if (!list.length) { grid.html('<div style="color:#666;grid-column:1/-1;text-align:center;padding:40px 0;">No archived products.</div>'); return; }
+        grid.empty();
+        list.forEach(p => {
+            const qty = parseInt(p.quantity);
+            const low = qty <= 5;
+            grid.append(`
+                <div class="stock-card">
+                    <span class="sc-qty-badge ${low ? 'low' : ''}">${qty} left</span>
+                    <img src="${imgSrc(p.img)}" alt="${p.product_name}" onerror="this.src='../../../../assets/image/Logo.png'">
+                    <div class="sc-name">${p.product_name}</div>
+                    <div class="sc-price">₱${parseFloat(p.price).toFixed(2)}</div>
+                    <div class="sc-date">Stocked: ${p.date_stocked || '-'}</div>
+                    <div class="stock-card-actions">
+                        <button class="sc-btn unarchive" onclick="unarchiveProduct(${p.id})">Restore</button>
+                        <button class="sc-btn archive" onclick="permanentDeleteProduct(${p.id})">Delete</button>
+                    </div>
+                </div>
+            `);
+        });
+    }).fail(function(){ grid.html('<div style="color:#e53935;grid-column:1/-1;text-align:center;padding:40px 0;">Failed to load.</div>'); });
+}
+
+function loadStockHistory(search) {
+    const q = search ? '&search=' + encodeURIComponent(search) : '';
+    $('#stockHistoryBody').html('<tr><td colspan="8" style="text-align:center;color:#666;padding:30px 0;">Loading...</td></tr>');
+    $.getJSON('Ecommerce.php?ajax_stock_history=1' + q, function(data){
+        if (!data.length) { $('#stockHistoryBody').html('<tr><td colspan="7" style="text-align:center;color:#666;padding:30px 0;">No records found.</td></tr>'); return; }
+        let html = '';
+        data.forEach(r => {
+            const ch = parseInt(r.change_qty);
+            html += `<tr><td>${(r.created_at || '').substring(0,19).replace('T',' ')}</td><td>${r.product_name || ''}</td><td style="color:${ch>=0? '#43a047':'#e53935'};font-weight:700;">${ch>=0? '+'+ch: ch}</td><td>${r.prev_qty||''}</td><td>${r.new_qty||''}</td><td>${r.changed_by||''}</td><td>${r.note||''}</td></tr>`;
+        });
+        $('#stockHistoryBody').html(html);
+    }).fail(function(){ $('#stockHistoryBody').html('<tr><td colspan="7" style="text-align:center;color:#e53935;padding:30px 0;">Failed to load stock history.</td></tr>'); });
+}
+
 // ── Render stock grid ──
 function renderStockGrid(filter) {
     filter = (filter || '').toLowerCase();
@@ -1031,16 +1180,16 @@ function renderStockGrid(filter) {
                 <div class="sc-name">${p.product_name}</div>
                 <div class="sc-price">₱${parseFloat(p.price).toFixed(2)}</div>
                 <div class="sc-date">Stocked: ${p.date_stocked || '-'}</div>
-                                <div class="stock-card-actions">
-                                <button class="sc-btn manage" onclick="openManage(${p.id},'${p.product_name.replace(/'/g,"\\'")}',${p.price})">Manage</button>
-                                <button class="sc-btn archive" onclick="archiveProduct(${p.id})">Archive</button>
-                            </div>
+                <div class="stock-card-actions">
+                    <button class="sc-btn manage" onclick="openManage(${p.id},'${p.product_name.replace(/'/g,"\\'")}',${p.price})">Manage</button>
+                    <button class="sc-btn archive" onclick="archiveProduct(${p.id})">Archive</button>
+                </div>
             </div>
         `);
     });
 }
 
-    function openManage(id, name, price) {
+function openManage(id, name, price) {
     $('#productModalTitle').text('Manage: ' + name);
     $('#pSubmitBtn').text('Apply Change');
     $('#pEditId').val(id);
@@ -1050,14 +1199,33 @@ function renderStockGrid(filter) {
     $('#imgPreview').hide();
     $('#pImg').val('');
     $('#qtyLabel').text('Quantity *');
-    // show manage options if exists
-    if ($('#manageOptions')) $('#manageOptions').show();
+    $('#manageOptions').show();
     $('#productModal').addClass('active');
 }
 
-function deleteProduct(id) {
+function archiveProduct(id) {
     if (!confirm('Archive this product?')) return;
-    $.ajax({ url: 'Ecommerce.php', method: 'POST', data: { ajax_archive_product: 1, id: id }, dataType: 'json', success: function(res){ if (res.success) { showToast('Product archived.', 'success'); loadProducts(() => { renderSellGrid(); renderStockGrid($('#stockSearch').val()); }); } } });
+    $.ajax({
+        url: 'Ecommerce.php', method: 'POST',
+        data: { ajax_archive_product: 1, id: id },
+        dataType: 'json',
+        success: function(res) {
+            if (res.success) {
+                showToast('Product archived.', 'success');
+                loadProducts(() => { renderSellGrid(); renderStockGrid($('#stockSearch').val()); });
+            }
+        }
+    });
+}
+
+function unarchiveProduct(id) {
+    if (!confirm('Restore this product?')) return;
+    $.ajax({ url: 'Ecommerce.php', method: 'POST', data: { ajax_unarchive_product: 1, id: id }, dataType: 'json', success: function(res){ if (res.success) { showToast('Product restored.', 'success'); loadProducts(() => { renderSellGrid(); renderStockGrid($('#stockSearch').val()); }); renderArchivedGrid(); } } });
+}
+
+function permanentDeleteProduct(id) {
+    if (!confirm('Permanently delete this product? This cannot be undone.')) return;
+    $.ajax({ url: 'Ecommerce.php', method: 'POST', data: { ajax_permanent_delete_product: 1, id: id }, dataType: 'json', success: function(res){ if (res.success) { showToast('Product permanently deleted.', 'success'); renderArchivedGrid(); loadProducts(() => { renderSellGrid(); renderStockGrid($('#stockSearch').val()); }); } } });
 }
 
 // ── Sale History ──
@@ -1087,19 +1255,19 @@ function renderHistoryTable(transactions) {
             : itemCount + ' products';
         const itemRows = t.items.map(item => `
             <tr>
-                <td style="padding:7px 20px;color:#ddd;border-top:1px solid #2a2a2a;">${item.product_name}</td>
-                <td style="padding:7px 14px;text-align:center;color:#ddd;border-top:1px solid #2a2a2a;">${item.qty_sold}</td>
-                <td style="padding:7px 14px;color:#ddd;border-top:1px solid #2a2a2a;">&#8369;${parseFloat(item.unit_price).toFixed(2)}</td>
-                <td style="padding:7px 14px;color:#f5c518;font-weight:700;border-top:1px solid #2a2a2a;">&#8369;${parseFloat(item.total).toFixed(2)}</td>
+                <td data-label="Product" style="padding:7px 20px;color:#ddd;border-top:1px solid #2a2a2a;">${item.product_name}</td>
+                <td data-label="Qty" style="padding:7px 14px;text-align:center;color:#ddd;border-top:1px solid #2a2a2a;">${item.qty_sold}</td>
+                <td data-label="Unit Price" style="padding:7px 14px;color:#ddd;border-top:1px solid #2a2a2a;">&#8369;${parseFloat(item.unit_price).toFixed(2)}</td>
+                <td data-label="Subtotal" style="padding:7px 14px;color:#f5c518;font-weight:700;border-top:1px solid #2a2a2a;">&#8369;${parseFloat(item.total).toFixed(2)}</td>
             </tr>`).join('');
         html += `
         <tr class="history-row" data-idx="${idx}" style="cursor:pointer;">
-            <td style="white-space:nowrap;">${date}</td>
-            <td>${itemLabel} ${itemCount > 1 ? '<span class="h-arrow" style="font-size:11px;color:#f5c518;margin-left:4px;">&or;</span>' : ''}</td>
-            <td style="color:#f5c518;font-weight:700;">&#8369;${parseFloat(t.total).toFixed(2)}</td>
-            <td><span class="badge-pay ${payClass}">${payLabel}</span></td>
-            <td>${t.member_name || '-'}</td>
-            <td>${t.transacted_by || '-'}</td>
+            <td data-label="Date" style="white-space:nowrap;">${date}</td>
+            <td data-label="Items">${itemLabel} ${itemCount > 1 ? '<span class="h-arrow" style="font-size:11px;color:#f5c518;margin-left:4px;">&or;</span>' : ''}</td>
+            <td data-label="Total" style="color:#f5c518;font-weight:700;">&#8369;${parseFloat(t.total).toFixed(2)}</td>
+            <td data-label="Payment"><span class="badge-pay ${payClass}">${payLabel}</span></td>
+            <td data-label="Member">${t.member_name || '-'}</td>
+            <td data-label="By">${t.transacted_by || '-'}</td>
         </tr>`;
         if (itemCount > 1) {
             html += `

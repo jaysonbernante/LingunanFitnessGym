@@ -20,8 +20,11 @@ LingunanFitnessGym
 │   │   ├── dashboard_active.png
 │   │   ├── dashboard.png
 │   │   ├── DATAMEX Jayson Bernante MOA!!!.docx
+│   │   ├── download.zip
 │   │   ├── member_active.png
 │   │   ├── member.png
+│   │   ├── online_chat_active.png
+│   │   ├── online_chat.png
 │   │   ├── user.png
 │   │   ├── wallet_active.png
 │   │   └── wallet.png
@@ -78,20 +81,13 @@ LingunanFitnessGym
 │   │   │   │   ├── Ecommerce.php
 │   │   │   │   ├── entryLog.php
 │   │   │   │   ├── revenue.php
-│   │   │   │   └── RFID.php
+│   │   │   │   ├── RFID.php
+│   │   │   │   └── support.php
 │   │   │   └── dashboard.php
 │   │   ├── management
 │   │   │   └── report.php
 │   │   ├── staff
-│   │   │   ├── management
-│   │   │   │   ├── member.php
-│   │   │   │   ├── transaction.php
-│   │   │   │   ├── visitorLog.php
-│   │   │   │   └── wallet.php
-│   │   │   ├── system
-│   │   │   │   ├── Ecommerce.php
-│   │   │   │   └── RFID.php
-│   │   │   └── dashboard.php
+│   │   │   └── auto_login.php
 │   │   ├── index.php
 │   │   ├── login.php
 │   │   ├── logout.php

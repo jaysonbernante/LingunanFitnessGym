@@ -1,10 +1,18 @@
-<?php
-// component/staff_sidebar.php
-require_once __DIR__ . '/session_check.php';
-// Use absolute paths so sidebar links and logout work correctly from any staff page
-$basePath = '/LingunanFitnessGym/public/client/staff/';
-$logoutPath = '/LingunanFitnessGym/public/client/logout.php';
-$iconPath = '../../../assets/ico/';
+﻿<?php
+// component/admin_sidebar.php
+// Dynamically determine base path for sidebar links
+$currentDir = basename(dirname($_SERVER['PHP_SELF']));
+$basePath = '';
+$logoutPath = '';
+if ($currentDir === 'management' || $currentDir === 'system') {
+    $basePath = '../../../client/staff/';
+    $logoutPath = '../../../client/logout.php';
+    $iconPath = '../../../assets/ico/';
+} else {
+    $basePath = '';
+    $logoutPath = '../logout.php';
+    $iconPath = '../../assets/ico/';
+}
 $currentFile = isset($page) ? $page : basename($_SERVER['PHP_SELF']);
 ?>
 <div id="loading-overlay" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(30,30,30,0.7);z-index:9999;align-items:center;justify-content:center;">
@@ -72,7 +80,7 @@ $currentFile = isset($page) ? $page : basename($_SERVER['PHP_SELF']);
         </span>
         Monitor Wallet
       </a></li>
-      
+
       <li><a href="<?php echo $basePath . 'management/visitorLog.php'; ?>" class="<?php echo $currentFile === 'visitorLog' ? 'active' : ''; ?>">
         <span style="display:inline-block;vertical-align:middle;margin-right:7px;">
         <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -88,7 +96,7 @@ $currentFile = isset($page) ? $page : basename($_SERVER['PHP_SELF']);
         Visitor Log
       </a></li>
 
-      <li><a href="<?php echo $basePath . 'management/transaction.php'; ?>" class="<?php echo $currentFile === 'transaction' ? 'active' : ''; ?>">
+      <li><a href="<?php echo $basePath . 'system/revenue.php'; ?>" class="<?php echo $currentFile === 'revenue' ? 'active' : ''; ?>">
         <span style="display:inline-block;vertical-align:middle;margin-right:7px;">
         <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
         <rect width="28" height="28" fill="url(#pattern_revenue)"/>
@@ -103,7 +111,20 @@ $currentFile = isset($page) ? $page : basename($_SERVER['PHP_SELF']);
         Revenue
       </a></li>
 
-    
+      <li><a href="<?php echo $basePath . 'management/report.php'; ?>" class="<?php echo $currentFile === 'report' ? 'active' : ''; ?>">
+        <span style="display:inline-block;vertical-align:middle;margin-right:7px;">
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+        <rect width="28" height="28" fill="url(#pattern0_93_80)"/>
+        <defs>
+        <pattern id="pattern0_93_80" patternContentUnits="objectBoundingBox" width="1" height="1">
+        <use xlink:href="#image0_93_80" transform="scale(0.0111111)"/>
+        </pattern>
+        <image id="image0_93_80" width="90" height="90" preserveAspectRatio="none" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFoAAABaCAYAAAA4qEECAAAACXBIWXMAAAsTAAALEwEAmpwYAAACyElEQVR4nO3du24TQRQG4FMBb8D1OagoqIBIhMxBcs0LcCkTXozW8k4uogpIVDS0eGYbFBBLZTSJJRTL1rLemT17jv9f+hsX483nk3E8K8VECIIgCIIgavJt+upW8O5d8Pwxev4ZPS+kGir3J3o+qWfuIVlKPeUH0bvPkrhxbd3v+tg9ISuTPE5ktoWdtgt5TLaPvdyTR4DJtrGjdxfyiPyvFf8yiS0O66937t2jlhe/CZV7TtoiDRtXmq7JJPYYoU1ijxXaHPaYoU1hjx3aDLYGaBPYWqDVY2uCVo2tDVottkZoldhaodVha4ZWha0dWg22BeiU6A8etx6xSt6DlIaNqz1+ca8cNp/k1et0cSPA9dd62O/n2Yyd7q7nk+t8YeKwi1WMhF1qsvPqdbooedw4YAHtAW2qBGgGtKUSoBnQlkqAZkBbKgGaAW2pBGgGtKUSoBnQlkrGoJt0pjyfTu6kXp4vXz1WbP3lOfZOQTfBu73V50mPZcJeu3707mhnoMPlVB3sb3qu+ezl03STtMT638/2b+8EdGhB7ovdtn669bUL0M26X+dN2WIbaV2/9u69deimC/IW2K3rd3nhSCpDbBfbbiP/s37XrYikUnKSg3d7PaYx6ySrhA4dJm2bqSwxyeqgQ2G4ksiaoJvSW0GJ7UIVdMgwaaXfPC1ANxknrfSfg6qhD4f+ANJzfZ3Q6YSMBv5I3Xd9U9DzgodEOdZXB52OIGngY8+c24Ua6KvJc0dhxndTl2e/mQ/yi66vA9pSCdAMaEslQDOgLZUAzYC2VAI0A9pSCdAMaEslQDOgLZUAzYC2VJKDHtm/nvflGir+IQat58sUOAO0O5ODrvitNEAcqLV3r8Wgv354djNW7pM0Qizdis8XXyY3SPwrnCxjV3xen07u0xiSJnte8Zu0j9l4g3QXoeLTtF2ITzKCIAiCIAh1yV92nuQa6ivaYQAAAABJRU5ErkJggg=="/>
+        </defs>
+        </svg>
+        </span>
+        Transaction
+      </a></li>
 
     </ul>
   </div>
@@ -140,7 +161,18 @@ $currentFile = isset($page) ? $page : basename($_SERVER['PHP_SELF']);
         E-commerce
       </a></li>
       
-      
+       <li>
+    <a href="<?php echo $basePath . 'system/support.php'; ?>" class="<?php echo $currentFile === 'support' ? 'active' : ''; ?>">
+        <span style="display:inline-block;vertical-align:middle;margin-right:7px;">
+            <svg width="28" height="28" viewBox="0 0 76.01 76.01" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path
+                    fill="#ebc351"
+                    d="M40.3806,19.0027C49.5637,19.0027 57.008,23.611 57.008,29.2958C57.008,32.9008 54.0141,36.073 49.4815,37.9115C50.4478,39.7772 52.1442,41.8291 53.8406,44.4135C50.3128,43.1826 45.0382,41.9924 41.9082,39.546L40.3806,39.5889C31.1976,39.5889 23.7533,34.9805 23.7533,29.2958C23.7533,23.611 31.1976,19.0027 40.3806,19.0027ZM44.3395,43.5477C44.3395,48.3579 38.6677,52.2573 31.6711,52.2573L30.7082,52.2325C28.1329,54.6161 24.5589,57.008 20.5862,57.008C21.5113,55.1577 23.5174,53.3075 24.7099,50.8257C21.2717,49.2683 19.0026,46.5902 19.0026,43.5477C19.0026,40.5065 21.27,37.8293 24.706,36.2715C27.6472,39.1709 32.8586,41.0982 38.7973,41.0982L40.3249,41.0553C41.4454,41.9312 42.8409,42.646 44.3327,43.2594L44.3395,43.5477Z"/>
+            </svg>
+        </span>
+        Chat Support
+    </a>
+</li>
     </ul>
   </div>
   
@@ -160,7 +192,7 @@ $currentFile = isset($page) ? $page : basename($_SERVER['PHP_SELF']);
   </a>
 </aside>
 
-<!-- ── Logout Confirmation Modal ─────────────────────────────────────── -->
+<!-- â”€â”€ Logout Confirmatioan Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
 <div id="logoutModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.55);z-index:10000;align-items:center;justify-content:center;">
   <div style="background:#1e1e2e;border-radius:12px;padding:36px 32px;max-width:380px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.5);text-align:center;">
     
@@ -173,7 +205,7 @@ $currentFile = isset($page) ? $page : basename($_SERVER['PHP_SELF']);
   </div>
 </div>
 
-<!-- ── Auto-logout Warning Modal ─────────────────────────────────────────── -->
+<!-- â”€â”€ Auto-logout Warning Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
 <div id="timeoutWarnModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.55);z-index:10001;align-items:center;justify-content:center;">
   <div style="background:#1e1e2e;border-radius:12px;padding:36px 32px;max-width:400px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.5);text-align:center;">
     
@@ -251,7 +283,7 @@ $currentFile = isset($page) ? $page : basename($_SERVER['PHP_SELF']);
     window.addEventListener('resize', updateSidebarToggle);
     updateSidebarToggle();
 
-    // ── Logout confirmation modal ──────────────────────────────────────────
+    // â”€â”€ Logout confirmation modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     var logoutBtn    = document.getElementById('logoutBtn');
     var logoutModal  = document.getElementById('logoutModal');
     var logoutCancel = document.getElementById('logoutCancel');
@@ -268,7 +300,7 @@ $currentFile = isset($page) ? $page : basename($_SERVER['PHP_SELF']);
       });
     }
 
-    // ── Auto-logout after 20 min of inactivity (calient-side guard) ─────────
+    // â”€â”€ Auto-logout after 20 min of inactivity (client-side guard) â”€â”€â”€â”€â”€â”€â”€â”€â”€
     var IDLE_TIMEOUT   = 20 * 60 * 1000; // 20 minutes in ms
     var WARN_BEFORE    = 60 * 1000;       // show warning 60s before logout
     var logoutUrl      = document.getElementById('logoutConfirm') ? document.getElementById('logoutConfirm').href : 'logout.php';
@@ -322,3 +354,5 @@ $currentFile = isset($page) ? $page : basename($_SERVER['PHP_SELF']);
     resetIdleTimer(); // start the timer
   });
 </script>
+
+

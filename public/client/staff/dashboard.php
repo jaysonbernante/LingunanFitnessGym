@@ -2,7 +2,15 @@
 require_once '../../../app/config/connection.php';
 require_once '../../../component/session_check.php';
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['profile_update'])) {
+    require_once '../../../component/admin_header.php';
+    exit;
+}
+
+date_default_timezone_set('Asia/Manila');
+
 $page = 'dashboard';
+
 $toast = '';
 if (isset($_SESSION['login_success'])) {
     $toast = $_SESSION['login_success'];
@@ -11,12 +19,30 @@ if (isset($_SESSION['login_success'])) {
 
 // ── Stat queries ──────────────────────────────────────────────────────────
 try {
+    // Ensure wallet transactions table exists for dashboard stats
+    $pdo->exec("CREATE TABLE IF NOT EXISTS wallet_transactions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        member_id INT NOT NULL,
+        transaction_type VARCHAR(32) NOT NULL,
+        amount DECIMAL(10,2) NOT NULL,
+        balance_before DECIMAL(10,2) NOT NULL,
+        balance_after DECIMAL(10,2) NOT NULL,
+        reason TEXT,
+        created_by VARCHAR(100),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX(member_id)
+    )");
+
     // Total members
     $totalMembers = $pdo->query("SELECT COUNT(*) FROM members")->fetchColumn();
 
     // Members by type
     $sessionCount    = $pdo->query("SELECT COUNT(*) FROM members WHERE type='session'")->fetchColumn();
     $membershipCount = $pdo->query("SELECT COUNT(*) FROM members WHERE type='member'")->fetchColumn();
+
+    // Archive + blocked counts
+    $archivedCount = intval($pdo->query("SELECT COUNT(*) FROM members_archived")->fetchColumn());
+    $blockedCount  = intval($pdo->query("SELECT COUNT(*) FROM blocked_rfids")->fetchColumn());
 
     // Active memberships (not expired)
     $activeMemberships = $pdo->query("SELECT COUNT(*) FROM members WHERE type='member' AND (membership_expiry IS NULL OR membership_expiry >= CURDATE())")->fetchColumn();
@@ -32,12 +58,16 @@ try {
 
     // Today's sales revenue
     $todaySalesRevenue = 0;
-    try { $todaySalesRevenue = $pdo->query("SELECT COALESCE(SUM(total),0) FROM sales WHERE DATE(created_at)=CURDATE()")->fetchColumn(); } catch(Exception $e) {}
+    try { $todaySalesRevenue = $pdo->query("SELECT COALESCE(SUM(total),0) FROM sales WHERE DATE(sold_at)=CURDATE()")->fetchColumn(); } catch(Exception $e) {}
+
+    // Wallet cash-in total
+    $walletCashInCount = $pdo->query("SELECT COUNT(*) FROM wallet_transactions WHERE transaction_type='credit_add'")->fetchColumn();
+    $walletCashInAmount = $pdo->query("SELECT COALESCE(SUM(amount),0) FROM wallet_transactions WHERE transaction_type='credit_add'")->fetchColumn();
 
     // This month's total revenue
     $monthEntryRevenue = $pdo->query("SELECT COALESCE(SUM(amount_charged),0) FROM entry_logs WHERE MONTH(entry_time)=MONTH(CURDATE()) AND YEAR(entry_time)=YEAR(CURDATE())")->fetchColumn();
     $monthSalesRevenue = 0;
-    try { $monthSalesRevenue = $pdo->query("SELECT COALESCE(SUM(total),0) FROM sales WHERE MONTH(created_at)=MONTH(CURDATE()) AND YEAR(created_at)=YEAR(CURDATE())")->fetchColumn(); } catch(Exception $e) {}
+    try { $monthSalesRevenue = $pdo->query("SELECT COALESCE(SUM(total),0) FROM sales WHERE MONTH(sold_at)=MONTH(CURDATE()) AND YEAR(sold_at)=YEAR(CURDATE())")->fetchColumn(); } catch(Exception $e) {}
     $monthRevenue = floatval($monthEntryRevenue) + floatval($monthSalesRevenue);
 
     // Last 6 entries today
@@ -89,7 +119,7 @@ foreach ($chartData as $dt => $cnt) {
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <style>
-    .db-wrap { padding: 28px 32px; }
+   
 
     /* ── Stat cards ──────────────────────────────────────────────── */
     .db-cards {
@@ -247,6 +277,18 @@ foreach ($chartData as $dt => $cnt) {
             <div class="db-card-val"><?php echo intval($activeMemberships); ?></div>
             <div class="db-card-sub">valid &amp; not expired</div>
         </div>
+        <div class="db-card c-red">
+            <div class="db-card-icon">&#128274;</div>
+            <div class="db-card-label">Blocked RFIDs</div>
+            <div class="db-card-val"><?php echo intval($blockedCount); ?></div>
+            <div class="db-card-sub">blocked card records</div>
+        </div>
+        <div class="db-card c-orange">
+            <div class="db-card-icon">&#128230;</div>
+            <div class="db-card-label">Archived Members</div>
+            <div class="db-card-val"><?php echo intval($archivedCount); ?></div>
+            <div class="db-card-sub">Archived member history</div>
+        </div>
         <div class="db-card c-yellow">
             <div class="db-card-icon">&#128184;</div>
             <div class="db-card-label">Today's Revenue</div>
@@ -264,6 +306,12 @@ foreach ($chartData as $dt => $cnt) {
             <div class="db-card-label">Today's Entries</div>
             <div class="db-card-val"><?php echo intval($todayEntries); ?></div>
             <div class="db-card-sub">all walk-ins &amp; members</div>
+        </div>
+        <div class="db-card c-orange">
+            <div class="db-card-icon">💳</div>
+            <div class="db-card-label">Wallet Cash-Ins</div>
+            <div class="db-card-val"><?php echo intval($walletCashInCount); ?></div>
+            <div class="db-card-sub">₱<?php echo number_format($walletCashInAmount, 2); ?> total</div>
         </div>
         <?php if (!empty($expiringRows)): ?>
         <div class="db-card c-orange">
@@ -298,7 +346,7 @@ foreach ($chartData as $dt => $cnt) {
         <div class="db-panel">
             <div class="db-panel-header">
                 <h3>&#128276; Recent Entries</h3>
-                <a href="visitorLog.php">View All</a>
+                <a href="../admin/management/visitorLog.php">View All</a>
             </div>
             <div class="db-panel-body">
                 <?php if (empty($recentEntries)): ?>

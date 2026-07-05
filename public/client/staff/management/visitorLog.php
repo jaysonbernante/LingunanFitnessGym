@@ -66,6 +66,16 @@ if (isset($_GET['ajax_visitor_log'])) {
     exit;
 }
 
+// ── Month stats ───────────────────────────────────────────────────────────
+$monthEntryCount = 0;
+$monthEntryRevenue = 0;
+try {
+    $stmt = $pdo->query("SELECT COUNT(*) as cnt, COALESCE(SUM(amount_charged),0) as rev FROM entry_logs WHERE MONTH(entry_time)=MONTH(CURDATE()) AND YEAR(entry_time)=YEAR(CURDATE())");
+    $row = $stmt->fetch();
+    $monthEntryCount = intval($row['cnt']);
+    $monthEntryRevenue = floatval($row['rev']);
+} catch(Exception $e) {}
+
 $page = 'visitorLog';
 include '../../../../component/admin_header.php';
 include '../../../../component/staff_sidebar.php';
@@ -79,7 +89,7 @@ include '../../../../component/staff_sidebar.php';
     <link href="../../../../assets/css/toastednotif.css" rel="stylesheet">
     <link href="../../../../assets/css/admin_header.css" rel="stylesheet">
     <link href="../../../../assets/css/admin_sidebar.css" rel="stylesheet">
-    <link href="../../../../assets/css/admin.css" rel="stylesheet">
+    <link href="../../../../assets/css/visitorLog.css" rel="stylesheet">
 </head>
 <style>
     /* ── Page wrapper ─────────────────────────────────────────────── */
@@ -238,6 +248,16 @@ include '../../../../component/staff_sidebar.php';
             <div class="vl-stat-label">Session Entries</div>
             <div class="vl-stat-val" id="statSession">—</div>
             <div class="vl-stat-sub" id="statMembership"></div>
+        </div>
+        <div class="vl-stat c-blue">
+            <div class="vl-stat-label">Month Entries</div>
+            <div class="vl-stat-val" id="statMonthEntry"><?php echo intval($monthEntryCount); ?></div>
+            <div class="vl-stat-sub"><?php echo date('F Y'); ?></div>
+        </div>
+        <div class="vl-stat c-green">
+            <div class="vl-stat-label">Month Revenue</div>
+            <div class="vl-stat-val" id="statMonthRevenue">₱<?php echo number_format($monthEntryRevenue, 2); ?></div>
+            <div class="vl-stat-sub">entry fees only</div>
         </div>
     </div>
 

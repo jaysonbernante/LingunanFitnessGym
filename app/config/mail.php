@@ -1,12 +1,20 @@
 <?php
 function get_gmail_smtp_config() {
+    $envUsername = getenv('GMAIL_SMTP_USERNAME');
+    $envPassword = getenv('GMAIL_SMTP_PASSWORD');
+    $envFromEmail = getenv('GMAIL_SMTP_FROM_EMAIL');
+    $envFromName = getenv('GMAIL_SMTP_FROM_NAME');
+
+    $password = $envPassword !== false ? trim((string) $envPassword) : 'lpzslmrjyxbcbwo';
+    $password = preg_replace('/\s+/', '', $password);
+
     return [
         'host' => 'smtp.gmail.com',
         'port' => 587,
-        'username' => 'otpsenderviagmail@gmail.com',
-        'password' => 'lpzs xlmr jyxb cbwo',
-        'from_email' => 'otpsenderviagmail@gmail.com',
-        'from_name' => 'Lingunan Fitness Gym',
+        'username' => $envUsername !== false ? trim((string) $envUsername) : 'otpsenderviagmail@gmail.com',
+        'password' => $password,
+        'from_email' => $envFromEmail !== false ? trim((string) $envFromEmail) : 'otpsenderviagmail@gmail.com',
+        'from_name' => $envFromName !== false ? trim((string) $envFromName) : 'Lingunan Fitness Gym',
         'timeout' => 30,
     ];
 }

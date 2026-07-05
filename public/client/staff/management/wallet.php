@@ -59,6 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_add_credit'])) {
             $pdo->prepare("UPDATE members SET credit = credit + ? WHERE id = ?")->execute([$amount, $id]);
             $pdo->prepare("INSERT INTO wallet_transactions (member_id, transaction_type, amount, balance_before, balance_after, reason, created_by) VALUES (?, 'credit_add', ?, ?, ?, 'Credit input', ?)")
                 ->execute([$id, $amount, $before, $after, $user]);
+            add_admin_notification($pdo, 'wallet', 'Wallet credit added', 'Admin added credit to a member wallet.', $user);
             $pdo->commit();
             echo json_encode(['success' => true, 'credit' => $after]);
         } catch (Exception $e) {
@@ -106,6 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_adjust_credit'])
             $pdo->prepare("UPDATE members SET credit = credit + ? WHERE id = ?")->execute([$change, $id]);
             $pdo->prepare("INSERT INTO wallet_transactions (member_id, transaction_type, amount, balance_before, balance_after, reason, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)")
                 ->execute([$id, $type, $change, $before, $after, $reason, $user]);
+            add_admin_notification($pdo, 'wallet', 'Wallet adjustment recorded', 'A wallet refund or correction was recorded.', $user);
             $pdo->commit();
             echo json_encode(['success' => true, 'credit' => $after]);
         } catch (Exception $e) {
@@ -118,12 +120,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_adjust_credit'])
     exit;
 }
 
+if (isset($_GET['ajax_wallet_summary'])) {
+    header('Content-Type: application/json');
+    $memberId = intval($_GET['member_id'] ?? 0);
+    $from = trim($_GET['from'] ?? '');
+    $to = trim($_GET['to'] ?? '');
+
+    if ($memberId > 0) {
+        $where = 'WHERE member_id = ? AND transaction_type = ?';
+        $params = [$memberId, 'credit_add'];
+        if ($from !== '') {
+            $where .= ' AND DATE(created_at) >= ?';
+            $params[] = $from;
+        }
+        if ($to !== '') {
+            $where .= ' AND DATE(created_at) <= ?';
+            $params[] = $to;
+        }
+        $stmt = $pdo->prepare("SELECT COUNT(*) as txn_count, COALESCE(SUM(amount),0) as total_amount FROM wallet_transactions $where");
+        $stmt->execute($params);
+        $summary = $stmt->fetch();
+        echo json_encode(['success' => true, 'summary' => [
+            'txn_count' => intval($summary['txn_count'] ?? 0),
+            'total_amount' => floatval($summary['total_amount'] ?? 0)
+        ]]);
+    } else {
+        echo json_encode(['success' => false, 'error' => 'Member ID missing.']);
+    }
+    exit;
+}
+
 if (isset($_GET['ajax_wallet_history'])) {
     header('Content-Type: application/json');
     $memberId = intval($_GET['member_id'] ?? 0);
+    $from = trim($_GET['from'] ?? '');
+    $to = trim($_GET['to'] ?? '');
     if ($memberId > 0) {
-        $stmt = $pdo->prepare("SELECT transaction_type, amount, balance_before, balance_after, reason, created_by, created_at FROM wallet_transactions WHERE member_id = ? ORDER BY created_at DESC LIMIT 50");
-        $stmt->execute([$memberId]);
+        $where = 'WHERE member_id = ?';
+        $params = [$memberId];
+        if ($from !== '') {
+            $where .= ' AND DATE(created_at) >= ?';
+            $params[] = $from;
+        }
+        if ($to !== '') {
+            $where .= ' AND DATE(created_at) <= ?';
+            $params[] = $to;
+        }
+        $stmt = $pdo->prepare("SELECT transaction_type, amount, balance_before, balance_after, reason, created_by, created_at FROM wallet_transactions $where ORDER BY created_at DESC LIMIT 50");
+        $stmt->execute($params);
         $history = $stmt->fetchAll();
         echo json_encode(['success' => true, 'history' => $history]);
     } else {
@@ -157,14 +201,50 @@ include '../../../../component/staff_sidebar.php';
         background: #222;
         color: #fff;
     }
+    @media (max-width: 1200px) {
+        .wallet-content { padding: 1.5rem; }
+        .gym-card{display: none;}
+    }
     @media (max-width: 900px) {
         .wallet-content { margin-left: 0; padding: 1rem; }
+        .wallet-panel { gap: 20px; flex-direction: column; }
+        .wallet-card { max-width: none; flex: none; width: 100%; }
+        .gym-card-section { max-width: none; width: 100%;   }
+        .gym-card { max-width: none; flex-direction: column; text-align: center; }
+        .gym-card img { width: 100%; max-width: 240px; height: auto; }
+        .wallet-history-section { margin-right: 0; padding: 20px 12px 20px 20px; }
+        .gym-card{display: none;}
     }
+    @media (max-width: 600px) {
+        .wallet-content { padding: 0.75rem; }
+        .rfid-bar { flex-direction: column; max-width: 100%; width: 100%; }
+        .rfid-bar input { width: 100%; }
+        .rfid-bar button { width: 100%; }
+        .wallet-panel { gap: 16px; }
+        .wallet-card { padding: 20px; min-width: unset; }
+        .donut-wrap { width: 140px; height: 140px; }
+        .gym-card {  padding: 0 !important; gap: 12px; padding-bottom: 28px !important; }
+        .gym-card img { max-width: 180px; }
+        .gym-card-text .gym-name { font-size: 1rem; letter-spacing: 0.5px; }
+        .wallet-history-section { padding: 16px 12px; }
+        .history-table { font-size: 12px; }
+        .history-table th, .history-table td { padding: 8px 6px; }
+        .modal-box { padding: 24px; max-width: 90%; }
+        .creditBtn {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+        }
+       
+    }
+
     .rfid-bar {
         display: flex;
         gap: 10px;
         align-items: center;
         max-width: 480px;
+        width: 100%;
     }
     .rfid-bar input {
         flex: 1;
@@ -196,7 +276,7 @@ include '../../../../component/staff_sidebar.php';
     .wallet-card {
         background: #1a1a1a;
         border-radius: 20px;
-        padding: 28px;
+        padding: 28px 25px 28px 25px;
         min-width: 260px;
         flex: 1;
         max-width: 320px;
@@ -261,8 +341,8 @@ include '../../../../component/staff_sidebar.php';
         border-radius: 50%;
         background: rgba(255,255,255,0.04);
     }
-    .gym-card img { width: 264px; height: 264px; object-fit: contain; }
-    .gym-card-text { color: #fff; }
+    .gym-card img { width: 264px; height: 264px; object-fit: contain; flex-shrink: 0; }
+    .gym-card-text { color: #fff; min-width: 150px; }
     .gym-card-text .gym-name { font-size: 1.25rem; font-weight: 900; line-height: 1.1; letter-spacing: 1px; }
     .gym-card-text .gym-sub { font-size: 0.8rem; color: #f5c518; letter-spacing: 2px; text-transform: uppercase; margin-top: 4px; }
     .gym-card .wifi-icon { position: absolute; bottom: 16px; right: 20px; font-size: 1.4rem; color: #888; }
@@ -311,14 +391,47 @@ include '../../../../component/staff_sidebar.php';
     .modal-actions { display: flex; gap: 10px; }
     .wallet-history-section {
         width: 100%; margin-top: 32px; background: #111;
-        border-radius: 20px; padding: 24px;
+        border-radius: 20px; padding: 28px; box-sizing: border-box;
     }
     .wallet-history-section h3 { margin: 0 0 8px; font-size: 1rem; color: #f5c518; }
     .wallet-history-section p { margin: 0 0 18px; color: #aaa; font-size: 13px; }
-    .history-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .history-table-container { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .history-table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 640px; }
+    .summary-strip {
+        display: flex; justify-content: space-between; align-items: center; gap: 16px;
+        flex-wrap: wrap; margin-bottom: 16px; background: #181818; border-radius: 14px; padding: 16px 18px;
+    }
+    .summary-stat {
+        display: flex; flex-direction: column; gap: 4px;
+    }
+    .summary-label { font-size: 12px; color: #aaa; text-transform: uppercase; letter-spacing: .5px; }
+    .summary-value { font-size: 1.25rem; font-weight: 800; color: #f5c518; }
+    .summary-sub { font-size: 12px; color: #888; }
+    .date-filter-row {
+        display: flex; gap: 10px; align-items: end; flex-wrap: wrap;
+    }
+    .date-filter-row label { font-size: 12px; color: #aaa; display: flex; flex-direction: column; gap: 4px; }
+    .date-filter-row input {
+        padding: 8px 10px; border-radius: 8px; border: 1px solid #444; background: #1a1a1a; color: #fff;
+    }
+    .date-filter-row button {
+        padding: 9px 14px; border-radius: 8px; border: none; background: #1976d2; color: #fff; cursor: pointer; font-weight: 600;
+    }
+    .date-filter-row button:hover { background: #1565c0; }
+    .date-filter-row .btn-clear { background: #444; }
+    .date-filter-row .btn-clear:hover { background: #555; }
     .history-table th, .history-table td {
         padding: 10px 12px; border-bottom: 1px solid #222;
         color: #ddd; text-align: left;
+    }
+    /* Mobile: transform table into stacked cards */
+    @media (max-width: 600px) {
+        .history-table { min-width: 0; }
+        .history-table thead { display: none; }
+        .history-table tbody tr { display: block; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.03); border-radius: 8px; padding: 10px; background: #0f0f0f; }
+        .history-table tbody td { display: flex; justify-content: space-between; padding: 8px 10px; border-bottom: none; flex-direction: row;}
+        .history-table tbody td::before { content: attr(data-label); color: #f5c518; font-weight: 700; margin-right: 8px; width: 120px; flex: 0 0 120px; }
+        .history-table tbody td:last-child { border-bottom: none; }
     }
     .history-table th { background: #181818; color: #f5c518; }
     .history-table tbody tr:hover { background: rgba(255,255,255,0.04); }
@@ -416,13 +529,29 @@ include '../../../../component/staff_sidebar.php';
                     </div>
                     <span class="wifi-icon">&#8767;</span>
                 </div>
+                <div class="creditBtn">
                 <button class="btn-input-credit" id="inputCreditBtn">Input Credit</button>
                 <button class="btn-input-credit" id="adjustCreditBtn" style="background:#b71c1c;border-color:#b71c1c;">Refund / Correct</button>
+            </div>
             </div>
         </div>
         <div class="wallet-history-section" id="walletHistorySection" style="display:none;">
             <h3>Wallet Transaction History</h3>
             <p>Recent wallet operations, refunds, and corrections are recorded with a required reason.</p>
+            <div class="summary-strip">
+                <div class="summary-stat">
+                    <span class="summary-label">Cash-In Total</span>
+                    <span class="summary-value" id="cashInSummaryAmount">₱0.00</span>
+                    <span class="summary-sub" id="cashInSummaryCount">0 transactions</span>
+                </div>
+                <div class="date-filter-row">
+                    <label>From <input type="date" id="walletFromDate"></label>
+                    <label>To <input type="date" id="walletToDate"></label>
+                    <button type="button" id="applyWalletFilter">Apply</button>
+                    <button type="button" id="clearWalletFilter" class="btn-clear">Clear</button>
+                </div>
+            </div>
+            <div class="history-table-container">
             <table class="history-table">
                 <thead>
                     <tr>
@@ -438,6 +567,7 @@ include '../../../../component/staff_sidebar.php';
                     <tr><td colspan="6" class="history-empty">No history loaded yet.</td></tr>
                 </tbody>
             </table>
+            </div>
         </div>
     </div>
 
@@ -485,6 +615,8 @@ include '../../../../component/staff_sidebar.php';
     <script>
     let currentMemberId = null;
     let currentCredit = 0;
+    let walletFilterFrom = '';
+    let walletFilterTo = '';
     const MAX_CREDIT = 5000;
     let creditChart = null;
     let toastTimer = null;
@@ -551,6 +683,7 @@ include '../../../../component/staff_sidebar.php';
         $('#walletPanel').addClass('active');
         $('#cardPlaceholder').hide();
         $('#walletHistorySection').show();
+        loadWalletSummary(currentMemberId);
         loadWalletHistory(currentMemberId);
         showToast('Member found successfully.', 'success');
     }
@@ -560,23 +693,41 @@ include '../../../../component/staff_sidebar.php';
         return sign + '₱' + Math.abs(amount).toFixed(2);
     }
 
+    function loadWalletSummary(memberId) {
+        if (!memberId) {
+            $('#cashInSummaryAmount').text('₱0.00');
+            $('#cashInSummaryCount').text('0 transactions');
+            return;
+        }
+        $.getJSON('wallet.php', { ajax_wallet_summary: 1, member_id: memberId, from: walletFilterFrom, to: walletFilterTo }, function(res) {
+            if (res.success && res.summary) {
+                const total = parseFloat(res.summary.total_amount || 0);
+                $('#cashInSummaryAmount').text('₱' + total.toFixed(2));
+                $('#cashInSummaryCount').text((parseInt(res.summary.txn_count || 0)) + ' transaction' + ((parseInt(res.summary.txn_count || 0)) === 1 ? '' : 's'));
+            } else {
+                $('#cashInSummaryAmount').text('₱0.00');
+                $('#cashInSummaryCount').text('0 transactions');
+            }
+        });
+    }
+
     function loadWalletHistory(memberId) {
         if (!memberId) {
             $('#historyBody').html('<tr><td colspan="6" class="history-empty">No member selected.</td></tr>');
             return;
         }
         $('#historyBody').html('<tr><td colspan="6" class="history-empty">Loading history...</td></tr>');
-        $.getJSON('wallet.php', { ajax_wallet_history: 1, member_id: memberId }, function(res) {
+        $.getJSON('wallet.php', { ajax_wallet_history: 1, member_id: memberId, from: walletFilterFrom, to: walletFilterTo }, function(res) {
             if (res.success && Array.isArray(res.history) && res.history.length) {
                 const rows = res.history.map(function(item) {
                     const typeLabel = item.transaction_type === 'credit_add' ? 'Credit Added' : (item.transaction_type === 'refund' ? 'Refund' : 'Correction');
                     return '<tr>' +
-                        '<td>' + item.created_at + '</td>' +
-                        '<td>' + typeLabel + '</td>' +
-                        '<td>' + formatAmount(item.amount) + '</td>' +
-                        '<td>₱' + parseFloat(item.balance_after).toFixed(2) + '</td>' +
-                        '<td>' + (item.reason ? $('<div>').text(item.reason).html() : '-') + '</td>' +
-                        '<td>' + (item.created_by || '-') + '</td>' +
+                        '<td data-label="Date">' + item.created_at + '</td>' +
+                        '<td data-label="Type">' + typeLabel + '</td>' +
+                        '<td data-label="Amount">' + formatAmount(item.amount) + '</td>' +
+                        '<td data-label="Balance After">₱' + parseFloat(item.balance_after).toFixed(2) + '</td>' +
+                        '<td data-label="Reason">' + (item.reason ? $('<div>').text(item.reason).html() : '-') + '</td>' +
+                        '<td data-label="By">' + (item.created_by || '-') + '</td>' +
                     '</tr>';
                 });
                 $('#historyBody').html(rows.join(''));
@@ -682,6 +833,30 @@ include '../../../../component/staff_sidebar.php';
                 showToast('Server error. Could not add credit.');
             }
         });
+    });
+
+    $('#applyWalletFilter').on('click', function() {
+        walletFilterFrom = $('#walletFromDate').val();
+        walletFilterTo = $('#walletToDate').val();
+        if (walletFilterFrom && walletFilterTo && walletFilterFrom > walletFilterTo) {
+            showToast('Start date cannot be later than end date.');
+            return;
+        }
+        if (currentMemberId) {
+            loadWalletSummary(currentMemberId);
+            loadWalletHistory(currentMemberId);
+        }
+    });
+
+    $('#clearWalletFilter').on('click', function() {
+        walletFilterFrom = '';
+        walletFilterTo = '';
+        $('#walletFromDate').val('');
+        $('#walletToDate').val('');
+        if (currentMemberId) {
+            loadWalletSummary(currentMemberId);
+            loadWalletHistory(currentMemberId);
+        }
     });
 
     $('#confirmAdjust').on('click', function() {

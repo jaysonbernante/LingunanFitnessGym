@@ -1,6 +1,7 @@
 <?php
 $page = 'staff';
 require_once '../../../../app/config/connection.php';
+require_once '../../../../app/config/mail.php';
 include '../../../../component/admin_header.php';
 include '../../../../component/admin_sidebar.php';
 ?>
@@ -286,13 +287,32 @@ include '../../../../component/admin_sidebar.php';
             archived_by VARCHAR(100) DEFAULT NULL,
             reason VARCHAR(255) DEFAULT 'archived'
         )"); } catch (Exception $e) {}
+        try { $pdo->exec("CREATE TABLE IF NOT EXISTS password_reset_requests (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            username VARCHAR(100) NOT NULL,
+            email VARCHAR(255),
+            status VARCHAR(20) DEFAULT 'pending',
+            reason VARCHAR(255),
+            requested_by INT,
+            requested_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            approved_by INT,
+            approved_at DATETIME,
+            auto_login_token VARCHAR(255),
+            auto_login_expiry DATETIME,
+            handled_by VARCHAR(100),
+            handled_at DATETIME,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )"); } catch (Exception $e) {}
+
+        $defaultStaffPassword = 'Staff1234';
 
         // Handle Add Staff
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_staff'])) {
             $username = trim($_POST['username'] ?? '');
             $email    = trim($_POST['email'] ?? '');
             $role     = trim($_POST['role'] ?? 'staff');
-            $password = password_hash('s', PASSWORD_DEFAULT);
+            $password = password_hash($defaultStaffPassword, PASSWORD_DEFAULT);
             $stmt = $pdo->prepare("INSERT INTO users (username, email, role, password, status, created_at) VALUES (?, ?, ?, ?, 'active', NOW())");
             $stmt->execute([$username, $email, $role, $password]);
             $adminName = $_SESSION['user_name'] ?? 'admin';
@@ -348,15 +368,42 @@ include '../../../../component/admin_sidebar.php';
                 if ($resetReq) {
                     if ($action === 'approve') {
                         $pdo->prepare("UPDATE users SET status = 'active', locked_until = NULL, failed_login_attempts = 0, password_reset_required = 0, password = ? WHERE id = ?")
-                            ->execute([password_hash('Staff1234', PASSWORD_DEFAULT), $resetReq['user_id']]);
+                            ->execute([password_hash($defaultStaffPassword, PASSWORD_DEFAULT), $resetReq['user_id']]);
                     } else {
                         $pdo->prepare("UPDATE users SET status = 'active', password_reset_required = 0 WHERE id = ?")
                             ->execute([$resetReq['user_id']]);
                     }
 
-                    $pdo->prepare("UPDATE password_reset_requests SET status = ?, handled_by = ?, handled_at = NOW() WHERE id = ?")
-                        ->execute([$action === 'approve' ? 'approved' : 'rejected', $adminName, $requestId]);
-                    add_admin_notification($pdo, 'staff', 'Password reset handled', 'A password reset request was approved or rejected.', $adminName);
+                    if ($action === 'approve') {
+                        // Generate a one-time auto-login token valid for 10 minutes
+                        try {
+                            $token = bin2hex(random_bytes(24));
+                        } catch (Exception $e) {
+                            $token = bin2hex(openssl_random_pseudo_bytes(24));
+                        }
+                        $expiry = date('Y-m-d H:i:s', strtotime('+10 minutes'));
+
+                        $pdo->prepare("UPDATE password_reset_requests SET status = 'approved', auto_login_token = ?, auto_login_expiry = ?, handled_by = ?, handled_at = NOW() WHERE id = ?")
+                            ->execute([$token, $expiry, $adminName, $requestId]);
+
+                        // Fetch staff email to send auto-login link
+                        $userStmt = $pdo->prepare("SELECT email FROM users WHERE id = ? LIMIT 1");
+                        $userStmt->execute([$resetReq['user_id']]);
+                        $userRow = $userStmt->fetch(PDO::FETCH_ASSOC);
+                        if ($userRow && filter_var($userRow['email'], FILTER_VALIDATE_EMAIL)) {
+                            $email = $userRow['email'];
+                            $siteUrl = get_site_login_url();
+                            $link = rtrim($siteUrl, '/') . '/public/client/staff/auto_login.php?token=' . urlencode($token);
+                            $mailBody = '<html><body><h2>Auto-login link</h2><p>An administrator approved your password reset request. Click the link below to automatically sign in. This link expires in 10 minutes.</p><p><a href="' . htmlspecialchars($link) . '">Sign in now</a></p><p>If you did not request this, please contact your administrator.</p></body></html>';
+                            @send_gmail_smtp($email, 'Your auto-login link', $mailBody);
+                        }
+
+                        add_admin_notification($pdo, 'staff', 'Password reset approved', 'An auto-login link was sent to the staff.', $adminName);
+                    } else {
+                        $pdo->prepare("UPDATE password_reset_requests SET status = ?, handled_by = ?, handled_at = NOW() WHERE id = ?")
+                            ->execute([$action === 'approve' ? 'approved' : 'rejected', $adminName, $requestId]);
+                        add_admin_notification($pdo, 'staff', 'Password reset rejected', 'A password reset request was rejected.', $adminName);
+                    }
                 }
             }
             echo "<meta http-equiv='refresh' content='0'>";
@@ -399,10 +446,45 @@ include '../../../../component/admin_sidebar.php';
 
             if ($archiveRow) {
                 $pdo->prepare("INSERT INTO users (username, email, role, password, status, created_at) VALUES (?, ?, ?, ?, 'active', NOW())")
-                    ->execute([$archiveRow['username'], $archiveRow['email'], $archiveRow['role'], password_hash('Staff1234', PASSWORD_DEFAULT)]);
+                    ->execute([$archiveRow['username'], $archiveRow['email'], $archiveRow['role'], password_hash($defaultStaffPassword, PASSWORD_DEFAULT)]);
                 $pdo->prepare("DELETE FROM staff_archive WHERE id = ?")->execute([$archiveId]);
                 $adminName = $_SESSION['user_name'] ?? 'admin';
                 add_admin_notification($pdo, 'staff', 'Staff recovered', 'A previously archived staff account was recovered.', $adminName);
+            }
+            echo "<meta http-equiv='refresh' content='0'>";
+            exit;
+        }
+
+        // Handle password reset request (only super_admin can initiate)
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_staff_reset'])) {
+            if (($_SESSION['user_role'] ?? '') !== 'super_admin') {
+                echo "<meta http-equiv='refresh' content='0'>";
+                exit;
+            }
+
+            $staffId = intval($_POST['request_staff_id'] ?? 0);
+            $reason  = trim($_POST['request_reason'] ?? 'Admin requested password reset');
+            $adminName = $_SESSION['user_name'] ?? 'admin';
+            
+            if ($staffId > 0) {
+                // Get staff info
+                $stmt = $pdo->prepare("SELECT id, username, email FROM users WHERE id = ? AND role = 'staff' LIMIT 1");
+                $stmt->execute([$staffId]);
+                $staff = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if ($staff) {
+                    // Check if there's already a pending request
+                    $check = $pdo->prepare("SELECT id FROM password_reset_requests WHERE user_id = ? AND status = 'pending' LIMIT 1");
+                    $check->execute([$staffId]);
+                    
+                    if (!$check->fetch()) {
+                        // Create new reset request
+                        $pdo->prepare("INSERT INTO password_reset_requests (user_id, username, email, status, reason, requested_by, requested_at) VALUES (?, ?, ?, 'pending', ?, ?, NOW())")
+                            ->execute([$staffId, $staff['username'], $staff['email'], $reason === '' ? 'Admin requested password reset' : $reason, $_SESSION['user_id']]);
+                        
+                        add_admin_notification($pdo, 'staff', 'Password reset requested', 'A password reset request was created for: ' . htmlspecialchars($staff['username']), $adminName);
+                    }
+                }
             }
             echo "<meta http-equiv='refresh' content='0'>";
             exit;
@@ -477,7 +559,7 @@ include '../../../../component/admin_sidebar.php';
             <div style="margin-left:auto;">
                 <button type="button" id="addStaffBtn"
                     style="padding:8px 18px; border-radius:8px; border:none; background:#1976d2; color:#fff; font-weight:600; cursor:pointer;">
-                    + Add Staff
+                    + Add User
                 </button>
             </div>
         </div>
@@ -502,7 +584,9 @@ include '../../../../component/admin_sidebar.php';
         </div>
 
         <div style="margin-top:24px;" id="dropSection">
+            <?php if (($_SESSION['user_role'] ?? '') === 'super_admin'): ?>
             <div style="margin-top:24px; background:#2b2b2b; padding:16px; border-radius:14px;" id="resetSection">
+                <h3 style="margin:0 0 12px; color:#fff;">Password Reset Requests</h3>
                 <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:15px;">
                     <input type="text" id="resetSearch" placeholder="Search reset username..."
                         style="padding:8px 12px; border-radius:8px; border:1px solid #ccc; width:250px;">
@@ -512,6 +596,15 @@ include '../../../../component/admin_sidebar.php';
                         <option value="approved">Approved</option>
                         <option value="rejected">Rejected</option>
                     </select>
+                    <form method="post" action="" style="margin-left:auto; display:flex; gap:10px; align-items:center;">
+                        <select name="request_staff_id" style="padding:8px 12px; border-radius:8px; border:1px solid #ccc; min-width:220px;">
+                            <option value="">Select staff to request</option>
+                            <?php foreach ($staffList as $staffRequestOption): if ($staffRequestOption['role'] === 'staff'): ?>
+                                <option value="<?= intval($staffRequestOption['id']) ?>"><?= htmlspecialchars($staffRequestOption['username']) ?> (<?= htmlspecialchars($staffRequestOption['email'] ?: 'no email') ?>)</option>
+                            <?php endif; endforeach; ?>
+                        </select>
+                        <button type="submit" name="request_staff_reset" value="1" style="padding:8px 18px; border-radius:8px; border:none; background:#f57c00; color:#fff; font-weight:600; cursor:pointer;">Create Request</button>
+                    </form>
                 </div>
                 <div class="table-wrapper">
                     <table class="admin-table" style="background:#262626;">
@@ -528,6 +621,7 @@ include '../../../../component/admin_sidebar.php';
                     </table>
                 </div>
             </div>
+            <?php endif; ?>
 
             <div style="margin-top:24px; background:#2b2b2b; padding:16px; border-radius:14px;" id="archiveSection">
                 <h3 style="margin:0 0 12px; color:#fff;">Archived Staff History</h3>

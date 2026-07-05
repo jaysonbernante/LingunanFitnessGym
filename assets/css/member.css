@@ -1,9 +1,14 @@
 /* Member portal styles */
+* {
+  box-sizing: border-box;
+}
+
 body {
   background: #0b1120;
   color: #e2e8f0;
   margin: 0;
   font-family: 'Inter', sans-serif;
+  overflow-x: hidden;
 }
 
 .member-page {
@@ -12,8 +17,8 @@ body {
 
 .member-layout {
   display: flex;
-    min-height: 100vh;
-   
+  min-height: 100vh;
+  width: 100%;
 }
 
 .member-sidebar {
@@ -97,6 +102,7 @@ body {
 
 .member-main {
   flex: 1;
+  min-width: 0;
   padding: 30px 34px;
 }
 
@@ -165,6 +171,12 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.card-list-item > span {
+  flex: 1 1 220px;
 }
 
 .card-list-item strong {
@@ -330,7 +342,6 @@ body {
   border-radius: 16px;
   background: #0f172a;
   color: #fff;
-  display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
@@ -378,6 +389,9 @@ body {
 
 @media (max-width: 900px) {
   .member-layout { flex-direction: column; }
+  .member-main {
+    padding: 84px 18px 24px;
+  }
   .member-sidebar {
     position: fixed;
     top: 18px;
@@ -438,9 +452,35 @@ body {
     padding: 22px 18px 18px;
     width: 100%;
     border-radius: 28px;
+    top: 8px;
+    left: 8px;
+    height: calc(100vh - 16px);
+  }
+  .member-main {
+    padding: 74px 14px 20px;
   }
   .member-menu-item { padding: 16px 16px; }
   .button, .member-logout { width: 100%; }
   .member-form .form-row { grid-template-columns: 1fr; }
-  .page-heading { gap: 14px; }
+  .member-form {
+    padding: 20px;
+  }
+  .page-heading {
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .page-heading h1 {
+    font-size: 1.55rem;
+  }
+  .card {
+    padding: 18px;
+  }
+  .card-list-item {
+    padding: 14px 16px;
+  }
+  .member-table th,
+  .member-table td {
+    padding: 12px 10px;
+    white-space: nowrap;
+  }
 }

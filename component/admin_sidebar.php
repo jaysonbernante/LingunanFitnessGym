@@ -174,6 +174,19 @@ $currentFile = isset($page) ? $page : basename($_SERVER['PHP_SELF']);
         E-commerce
       </a></li>
       
+      <li>
+    <a href="<?php echo $basePath . 'system/support.php'; ?>" class="<?php echo $currentFile === 'support' ? 'active' : ''; ?>">
+        <span style="display:inline-block;vertical-align:middle;margin-right:7px;">
+            <svg width="28" height="28" viewBox="0 0 76.01 76.01" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path
+                    fill="#ebc351"
+                    d="M40.3806,19.0027C49.5637,19.0027 57.008,23.611 57.008,29.2958C57.008,32.9008 54.0141,36.073 49.4815,37.9115C50.4478,39.7772 52.1442,41.8291 53.8406,44.4135C50.3128,43.1826 45.0382,41.9924 41.9082,39.546L40.3806,39.5889C31.1976,39.5889 23.7533,34.9805 23.7533,29.2958C23.7533,23.611 31.1976,19.0027 40.3806,19.0027ZM44.3395,43.5477C44.3395,48.3579 38.6677,52.2573 31.6711,52.2573L30.7082,52.2325C28.1329,54.6161 24.5589,57.008 20.5862,57.008C21.5113,55.1577 23.5174,53.3075 24.7099,50.8257C21.2717,49.2683 19.0026,46.5902 19.0026,43.5477C19.0026,40.5065 21.27,37.8293 24.706,36.2715C27.6472,39.1709 32.8586,41.0982 38.7973,41.0982L40.3249,41.0553C41.4454,41.9312 42.8409,42.646 44.3327,43.2594L44.3395,43.5477Z"/>
+            </svg>
+        </span>
+        Chat Support
+    </a>
+</li>
+      
       <li><a href="<?php echo $basePath . 'system/backup.php'; ?>" class="<?php echo $currentFile === 'backup' ? 'active' : ''; ?>">
         <span style="display:inline-block;vertical-align:middle;margin-right:7px;">
         <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">

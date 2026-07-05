@@ -4,7 +4,7 @@ require_once 'session_check.php';
 require_once '../../app/config/connection.php';
 
 $memberId = $_SESSION['member_id'];
-$stmt = $pdo->prepare("SELECT * FROM members WHERE id = ? AND type = 'member' LIMIT 1");
+$stmt = $pdo->prepare("SELECT * FROM members WHERE id = ? AND type IN ('member', 'session') LIMIT 1");
 $stmt->execute([$memberId]);
 $member = $stmt->fetch();
 if (!$member) {

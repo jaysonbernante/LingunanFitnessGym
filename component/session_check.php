@@ -37,6 +37,17 @@ if (isset($pdo)) {
         }
 
         $_SESSION['user_role'] = $user['role'];
+
+        if (($user['role'] ?? '') === 'staff') {
+            $allowedStaffPages = ['dashboard.php', 'member.php', 'wallet.php', 'visitorLog.php', 'report.php', 'RFID.php', 'Ecommerce.php', 'revenue.php', 'entryLog.php', 'support.php'];
+            $currentScript = basename($_SERVER['PHP_SELF'] ?? '');
+            if (!in_array($currentScript, $allowedStaffPages, true)) {
+                clear_staff_session();
+                $_SESSION['login_error'] = 'You do not have permission to access that page.';
+                header('Location: /LingunanFitnessGym/public/client/staff/dashboard.php');
+                exit();
+            }
+        }
     } catch (Exception $e) {
         clear_staff_session();
         $_SESSION['login_error'] = 'Session validation failed. Please log in again.';

@@ -1,8 +1,8 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) session_start();
-require_once '../../../../app/config/connection.php';
-require_once '../../../../component/session_check.php';
-require_once '../../../../app/config/mail.php';
+require_once __DIR__ . '/../../../../app/config/connection.php';
+require_once __DIR__ . '/../../../../component/session_check.php';
+require_once __DIR__ . '/../../../../app/config/mail.php';
 
 function backup_generate_otp_code(): string {
     return str_pad((string) random_int(100000, 999999), 6, '0', STR_PAD_LEFT);

@@ -15,7 +15,8 @@ function clear_member_session() {
     session_start();
 }
 
-if (!isset($_SESSION['member_id']) || ($_SESSION['member_type'] ?? '') !== 'member') {
+$memberType = $_SESSION['member_type'] ?? '';
+if (!isset($_SESSION['member_id']) || !in_array($memberType, ['member', 'session'], true)) {
     clear_member_session();
     header('Location: /LingunanFitnessGym/public/member/index.php');
     exit();
@@ -23,7 +24,7 @@ if (!isset($_SESSION['member_id']) || ($_SESSION['member_type'] ?? '') !== 'memb
 
 if (isset($pdo)) {
     try {
-        $stmt = $pdo->prepare("SELECT id, type FROM members WHERE id = ? AND type = 'member' LIMIT 1");
+        $stmt = $pdo->prepare("SELECT id, type FROM members WHERE id = ? AND type IN ('member', 'session') LIMIT 1");
         $stmt->execute([$_SESSION['member_id']]);
         $member = $stmt->fetch(PDO::FETCH_ASSOC);
 
