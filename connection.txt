@@ -23,4 +23,8 @@ try {
 
 $host = 'localhost';
 $db   = 'dbgym';
-$user = 'root';
+$user = 'root'; // Change if your MySQL user is different
+$pass = '';
+$charset = 'utf8mb4';
+
+$dsn = "mysql:host=$host;dbname=$db;charset=$charset";

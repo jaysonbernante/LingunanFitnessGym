@@ -161,7 +161,23 @@ $showResetFlow = (isset($_GET['forgot']) || $resetStep === 'otp' || isset($_POST
 <link href="../../assets/css/footerComponents.css" rel="stylesheet">
 <link href="../../assets/css/toastednotif.css" rel="stylesheet">
 </head>
+<style>
+.login-form h2 {
+    text-align: center;
+    color: #242424;
+    font-size: 28px;
+    margin-bottom: 30px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+.form-group label {
+    display: block;
+    color: #424242;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
 
+</style>
 <body>
    <?php
     include "../../component/landingPage-header.php"
