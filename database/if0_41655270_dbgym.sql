@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jul 06, 2026 at 10:49 PM
+-- Generation Time: Jul 05, 2026 at 11:07 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -76,10 +76,10 @@ INSERT INTO `admin_notifications` (`id`, `type`, `title`, `message`, `created_by
 (32, 'member', 'Member archived', 'A member account was archived from the management page.', 'admin', 0, '2026-07-01 08:12:42'),
 (33, 'member', 'Session member created', 'A new session member was added to the system.', 'admin', 0, '2026-07-01 08:12:55'),
 (34, 'staff', 'Staff account created', 'A new staff account was added and is ready for use.', 'admin', 1, '2026-07-01 08:15:04'),
-(35, 'staff', 'Password reset handled', 'A password reset request was approved or rejected.', 'admin', 1, '2026-07-01 08:18:20'),
-(36, 'member', 'Session member created', 'A new session member was added to the system.', 'admin', 1, '2026-07-01 08:27:25'),
-(37, 'staff', 'Staff archived', 'A staff account was archived.', 'admin', 1, '2026-07-01 08:27:56'),
-(38, 'staff', 'Staff account created', 'A new staff account was added and is ready for use.', 'admin', 1, '2026-07-01 08:28:22'),
+(35, 'staff', 'Password reset handled', 'A password reset request was approved or rejected.', 'admin', 0, '2026-07-01 08:18:20'),
+(36, 'member', 'Session member created', 'A new session member was added to the system.', 'admin', 0, '2026-07-01 08:27:25'),
+(37, 'staff', 'Staff archived', 'A staff account was archived.', 'admin', 0, '2026-07-01 08:27:56'),
+(38, 'staff', 'Staff account created', 'A new staff account was added and is ready for use.', 'admin', 0, '2026-07-01 08:28:22'),
 (39, 'staff', 'Staff account created', 'A new staff account was added and is ready for use.', 'admin', 1, '2026-07-01 08:29:19'),
 (40, 'support', 'New support request', 'A member submitted a new support ticket: test', 'asd asd', 1, '2026-07-01 08:37:36'),
 (41, 'support', 'Support reply sent', 'A staff member replied to a support conversation.', 'admin', 1, '2026-07-01 08:39:40'),
@@ -103,18 +103,7 @@ INSERT INTO `admin_notifications` (`id`, `type`, `title`, `message`, `created_by
 (59, 'support', 'Support reply sent', 'A staff member replied to a support conversation.', 'staff', 1, '2026-07-06 02:05:07'),
 (60, 'support', 'Support reply sent', 'A staff member replied to a support conversation.', 'staff', 1, '2026-07-06 02:05:22'),
 (61, 'support', 'Support reply sent', 'A staff member replied to a support conversation.', 'admin', 1, '2026-07-06 02:05:30'),
-(62, 'staff', 'Password reset approved', 'An auto-login link was sent to the staff.', 'admin', 1, '2026-07-06 04:11:40'),
-(63, 'staff', 'Password reset approved', 'An auto-login link was sent to the staff.', 'admin', 1, '2026-07-07 03:25:32'),
-(64, 'staff', 'Password reset requested', 'A password reset request was created for: asdasdasd', 'admin', 1, '2026-07-07 03:29:10'),
-(65, 'staff', 'Password reset requested', 'A password reset request was created for: staff', 'admin', 1, '2026-07-07 03:29:18'),
-(66, 'staff', 'Password reset rejected', 'A password reset request was rejected.', 'admin', 1, '2026-07-07 03:29:39'),
-(67, 'staff', 'Password reset rejected', 'A password reset request was rejected.', 'admin', 1, '2026-07-07 03:29:41'),
-(68, 'staff', 'New Password Reset Request', 'Too many incorrect OTP verification attempts.', 'staff', 1, '2026-07-07 03:46:08'),
-(69, 'staff', 'Staff account unlocked', 'A locked staff account was unlocked.', 'admin', 1, '2026-07-07 03:47:03'),
-(70, 'staff', 'Staff status changed', 'A staff account status was changed.', 'admin', 0, '2026-07-07 03:51:07'),
-(71, 'staff', 'Staff status changed', 'A staff account status was changed.', 'admin', 0, '2026-07-07 03:51:09'),
-(72, 'staff', 'Staff account unlocked', 'A locked staff account was unlocked.', 'admin', 1, '2026-07-07 03:51:15'),
-(73, 'staff', 'Password reset approved', 'An auto-login link was sent to the staff.', 'admin', 0, '2026-07-07 03:56:02');
+(62, 'staff', 'Password reset approved', 'An auto-login link was sent to the staff.', 'admin', 0, '2026-07-06 04:11:40');
 
 -- --------------------------------------------------------
 
@@ -225,7 +214,7 @@ CREATE TABLE `members` (
 --
 
 INSERT INTO `members` (`id`, `user_id`, `first_name`, `last_name`, `phone`, `address`, `type`, `membership_start`, `membership_end`, `password`, `username`, `gmail`, `RFID`, `Joined_Date`, `credit`, `plan_months`, `membership_expiry`) VALUES
-(38, NULL, 'asd', 'asd', '09834242342', 'asdasdasdasdasd', 'session', NULL, NULL, '$2y$10$RDOt1D97rwEZJAohrsoJ8uIM5CB.jeQ7CEijs6V30gfwPoyWtmqxi', 'asdasd', 'asd@gmail.com', NULL, '2026-07-01', 0.00, NULL, NULL);
+(38, NULL, 'asd', 'asd', '11111111111', 'asd', 'session', NULL, NULL, '$2y$10$RDOt1D97rwEZJAohrsoJ8uIM5CB.jeQ7CEijs6V30gfwPoyWtmqxi', 'asdasd', 'asd@gmail.com', NULL, '2026-07-01', 0.00, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -364,30 +353,19 @@ CREATE TABLE `password_reset_requests` (
   `auto_login_expiry` datetime DEFAULT NULL,
   `email` varchar(255) DEFAULT NULL,
   `requested_by` int(11) DEFAULT NULL,
-  `requested_at` datetime DEFAULT current_timestamp(),
-  `reset_method` varchar(20) DEFAULT NULL,
-  `full_name` varchar(255) DEFAULT NULL,
-  `role` varchar(50) DEFAULT NULL,
-  `approved_by` int(11) DEFAULT NULL,
-  `approved_at` datetime DEFAULT NULL,
-  `rejected_by` int(11) DEFAULT NULL,
-  `rejected_at` datetime DEFAULT NULL
+  `requested_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `password_reset_requests`
 --
 
-INSERT INTO `password_reset_requests` (`id`, `user_id`, `username`, `reason`, `status`, `created_at`, `handled_by`, `handled_at`, `auto_login_token`, `auto_login_expiry`, `email`, `requested_by`, `requested_at`, `reset_method`, `full_name`, `role`, `approved_by`, `approved_at`, `rejected_by`, `rejected_at`) VALUES
-(7, 4, 'staff', 'forgot pass test', 'approved', '2026-06-29 23:16:20', 'admin', '2026-06-29 23:16:28', NULL, NULL, NULL, NULL, '2026-07-06 04:11:09', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(8, 7, 'staff', 'Forgotpassword testing2', 'approved', '2026-06-29 23:55:29', 'admin', '2026-06-29 23:55:56', NULL, NULL, NULL, NULL, '2026-07-06 04:11:09', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(9, 7, 'staff', 'forgotpassword test', 'approved', '2026-06-30 06:47:30', 'admin', '2026-06-30 06:47:34', NULL, NULL, NULL, NULL, '2026-07-06 04:11:09', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(10, 15, 'zxc', 'zxc', 'approved', '2026-07-01 08:17:55', 'admin', '2026-07-01 08:18:20', NULL, NULL, NULL, NULL, '2026-07-06 04:11:09', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(11, 10, 'staff', 'Forgot password request', 'approved', '2026-07-06 04:11:11', 'admin', '2026-07-06 04:11:39', 'a8794fafbbdf2496f5c3701ba4ba312d1def115f5676136b', '2026-07-06 04:21:39', 'Jaysonbernante@gmail.com', 10, '2026-07-06 04:11:11', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(12, 1, 'admin', 'Forgot password request', 'approved', '2026-07-07 02:38:47', 'admin', '2026-07-07 03:25:28', 'f59d7b8db105b928255abf38c7d05f60f6527766fe97cbec', '2026-07-07 03:35:28', 'jaysonbernante1@gmail.com', 1, '2026-07-07 02:38:47', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(13, 16, 'asdasdasd', 'Admin requested password reset', 'rejected', '2026-07-07 03:29:10', 'admin', '2026-07-07 03:29:41', NULL, NULL, 'asdasdasd@gmail.com', 1, '2026-07-07 03:29:10', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(14, 10, 'staff', 'Admin requested password reset', 'rejected', '2026-07-07 03:29:18', 'admin', '2026-07-07 03:29:39', NULL, NULL, 'jaysonbernante@gmail.com', 1, '2026-07-07 03:29:18', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(15, 10, '', 'Too many incorrect OTP verification attempts (3 attempts). Account temporarily blocked for 10 minutes.', 'approved', '2026-07-07 03:46:08', 'admin', '2026-07-07 03:55:58', '090ac470c34e393192027c183076b460c9e374ce17dd6493', '2026-07-07 04:05:58', 'jaysonbernante@gmail.com', 10, '2026-07-07 03:46:08', NULL, 'staff', 'staff', 1, '2026-07-07 03:55:58', NULL, NULL);
+INSERT INTO `password_reset_requests` (`id`, `user_id`, `username`, `reason`, `status`, `created_at`, `handled_by`, `handled_at`, `auto_login_token`, `auto_login_expiry`, `email`, `requested_by`, `requested_at`) VALUES
+(7, 4, 'staff', 'forgot pass test', 'approved', '2026-06-29 23:16:20', 'admin', '2026-06-29 23:16:28', NULL, NULL, NULL, NULL, '2026-07-06 04:11:09'),
+(8, 7, 'staff', 'Forgotpassword testing2', 'approved', '2026-06-29 23:55:29', 'admin', '2026-06-29 23:55:56', NULL, NULL, NULL, NULL, '2026-07-06 04:11:09'),
+(9, 7, 'staff', 'forgotpassword test', 'approved', '2026-06-30 06:47:30', 'admin', '2026-06-30 06:47:34', NULL, NULL, NULL, NULL, '2026-07-06 04:11:09'),
+(10, 15, 'zxc', 'zxc', 'approved', '2026-07-01 08:17:55', 'admin', '2026-07-01 08:18:20', NULL, NULL, NULL, NULL, '2026-07-06 04:11:09'),
+(11, 10, 'staff', 'Forgot password request', 'approved', '2026-07-06 04:11:11', 'admin', '2026-07-06 04:11:39', 'a8794fafbbdf2496f5c3701ba4ba312d1def115f5676136b', '2026-07-06 04:21:39', 'Jaysonbernante@gmail.com', 10, '2026-07-06 04:11:11');
 
 -- --------------------------------------------------------
 
@@ -582,8 +560,8 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `username`, `password`, `email`, `role`, `created_at`, `status`, `failed_login_attempts`, `locked_until`, `remember_token`, `remember_expires_at`, `password_reset_required`) VALUES
-(1, 'admin', '$2y$10$EZb9GB0NvY7XVe4OU1/qqeeeCuzB0ils1Yx4ahzHBdEltQWixU1/i', 'jaysonbernante1@gmail.com', 'super_admin', '2026-04-12 08:43:31', 'active', 0, NULL, NULL, NULL, 0),
-(10, 'staff', '$2y$10$EPt94x5TSaNul0.mllzmZu02wbC7keSmCIrh4RM46pxBNaQNju5vy', 'jaysonbernante@gmail.com', 'staff', '2026-06-29 23:11:37', 'active', 0, NULL, NULL, NULL, 0),
+(1, 'admin', '$2y$10$m1/cRs5rdJpdi1pq8PiLH.ladcjeYv1/bSD8kzbbX/YX6aJfyx6oy', 'jaysonbernante1@gmail.com', 'super_admin', '2026-04-12 08:43:31', 'active', 0, NULL, NULL, NULL, 0),
+(10, 'staff', '$2y$10$4ZqSHJr4dgWX6kKWn6NhKO5enfymLP/ucbG75q8thsi6f29RjyXxW', 'jaysonbernante@gmail.com', 'staff', '2026-06-29 23:11:37', 'active', 0, NULL, NULL, NULL, 0),
 (11, 'admin1', '$2y$10$px.QfLkwIBzrwMK6WdggeO7GFYLhuGQ.iIfg1DiJujl6MxHo8QHOe', 'jaysonbernante0@gmail.com', 'super_admin', '2026-06-30 08:43:21', 'active', 0, NULL, NULL, NULL, 0),
 (12, 'asd', '$2y$10$ox45y54JExAkmTzHl36Z8uYCuXZ0/aPnoxqQpIVH414PC8D7AJ1wy', 'asd@gmail.com', 'super_admin', '2026-06-30 08:45:55', 'active', 0, NULL, NULL, NULL, 0),
 (14, 'asdasd', '$2y$10$DZBwALe4x4b8ujyhk11A2OSiP./CyGPxewvZOwl/3bX5opyLoa0mO', 'sdsdssdsd@gmail.com', 'super_admin', '2026-06-30 08:48:35', 'active', 0, NULL, NULL, NULL, 0),
@@ -740,7 +718,7 @@ ALTER TABLE `wallet_transactions`
 -- AUTO_INCREMENT for table `admin_notifications`
 --
 ALTER TABLE `admin_notifications`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=74;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=63;
 
 --
 -- AUTO_INCREMENT for table `blocked_rfids`
@@ -782,7 +760,7 @@ ALTER TABLE `member_transactions`
 -- AUTO_INCREMENT for table `password_reset_requests`
 --
 ALTER TABLE `password_reset_requests`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `products`

@@ -83,8 +83,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $resetStep = 'otp';
             $resetMessage = 'A 6-digit OTP was sent to your email. Enter it below to reset your password.';
           } else {
+            $mailError = is_string($mailResult) ? $mailResult : 'Mail delivery failed.';
+            error_log('OTP mail failed for ' . $resetEmail . ': ' . $mailError);
             unset($_SESSION['member_password_reset']);
-            $resetError = 'Unable to send the OTP right now. Please try again.';
+            $resetError = 'Unable to send the OTP right now. Gmail replied: ' . $mailError;
           }
         }
       }
@@ -201,9 +203,12 @@ $showResetFlow = (isset($_GET['forgot']) || $resetStep === 'otp' || isset($_POST
               <a href="index.php?reset_cancel=1" class="forgot-link">Back to login</a>
             </form>
           <?php else: ?>
-            <form class="login-form" method="post" action="login.php">
+            <form class="login-form" method="post" action="login.php" id="memberLoginForm">
               <h2>Member Login</h2>
               <p class="login-subtitle">Welcome back! Sign in to your account.</p>
+              <?php if (!empty($_SESSION['member_username'])): ?>
+                <div class="alert success" style="margin-bottom:12px;">Welcome, <?php echo htmlspecialchars($_SESSION['member_username']); ?>!</div>
+              <?php endif; ?>
               <div class="form-group">
                 <label for="login">Username or Gmail</label>
                 <input type="text" id="login" name="login" placeholder="Enter your username or gmail" required>
@@ -212,7 +217,7 @@ $showResetFlow = (isset($_GET['forgot']) || $resetStep === 'otp' || isset($_POST
                 <label for="password">Password</label>
                 <input type="password" id="password" name="password" placeholder="Enter your password" required>
               </div>
-              <button type="submit" class="btn-cta">Login</button>
+              <button type="submit" class="btn-cta" id="memberLoginButton">Login</button>
               <a href="index.php?forgot=1" class="forgot-link">Forgot password?</a>
             </form>
           <?php endif; ?>
@@ -239,6 +244,15 @@ $showResetFlow = (isset($_GET['forgot']) || $resetStep === 'otp' || isset($_POST
             toast.classList.remove('show');
             setTimeout(function() { toast.style.display = 'none'; }, 300);
           }, 3500);
+        }
+
+        var loginForm = document.getElementById('memberLoginForm');
+        var loginButton = document.getElementById('memberLoginButton');
+        if (loginForm && loginButton) {
+          loginForm.addEventListener('submit', function () {
+            loginButton.disabled = true;
+            loginButton.textContent = 'Signing in...';
+          });
         }
       });
     </script>

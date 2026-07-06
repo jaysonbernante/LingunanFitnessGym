@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['member_username'] = $user['username'];
         $_SESSION['member_type'] = $user['type'];
 
-        header('Location: dashboard.php');
+        header('Location: loading.php');
         exit();
 
     } else {

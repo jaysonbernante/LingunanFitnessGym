@@ -56,7 +56,7 @@ if ($membershipExpiry) {
         <a href="payments.php" class="member-menu-item <?php echo $currentPage === 'payments' ? 'active' : ''; ?>">Payments</a>
         <a href="support.php" class="member-menu-item <?php echo $currentPage === 'support' ? 'active' : ''; ?>">Support</a>
       </nav>
-      <a class="member-logout" href="logout.php">Logout</a>
+      <a class="member-logout" href="logout.php" id="memberLogoutTrigger">Logout</a>
     </aside>
 
     <main class="member-main">
@@ -112,5 +112,6 @@ if ($membershipExpiry) {
   </div>
   <script src="../../assets/js/member-sidebar-toggle.js"></script>
   <?php include "../../component/landingPage-footer.php"; ?>
+  <?php include "../../component/member_logout_modal.php"; ?>
 </body>
 </html>

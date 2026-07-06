@@ -1,13 +1,14 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.1
+-- version 4.9.0.1
 -- https://www.phpmyadmin.net/
 --
--- Host: 127.0.0.1
--- Generation Time: Jul 06, 2026 at 10:49 PM
--- Server version: 10.4.32-MariaDB
--- PHP Version: 8.2.12
+-- Host: sql201.infinityfree.com
+-- Generation Time: Jul 05, 2026 at 05:08 PM
+-- Server version: 11.4.12-MariaDB
+-- PHP Version: 7.2.22
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+SET AUTOCOMMIT = 0;
 START TRANSACTION;
 SET time_zone = "+00:00";
 
@@ -18,7 +19,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Database: `dbgym`
+-- Database: `if0_41655270_dbgym`
 --
 
 -- --------------------------------------------------------
@@ -35,7 +36,7 @@ CREATE TABLE `admin_notifications` (
   `created_by` varchar(100) DEFAULT NULL,
   `is_read` tinyint(1) NOT NULL DEFAULT 0,
   `created_at` datetime DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=MyISAM DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
 --
 -- Dumping data for table `admin_notifications`
@@ -76,10 +77,10 @@ INSERT INTO `admin_notifications` (`id`, `type`, `title`, `message`, `created_by
 (32, 'member', 'Member archived', 'A member account was archived from the management page.', 'admin', 0, '2026-07-01 08:12:42'),
 (33, 'member', 'Session member created', 'A new session member was added to the system.', 'admin', 0, '2026-07-01 08:12:55'),
 (34, 'staff', 'Staff account created', 'A new staff account was added and is ready for use.', 'admin', 1, '2026-07-01 08:15:04'),
-(35, 'staff', 'Password reset handled', 'A password reset request was approved or rejected.', 'admin', 1, '2026-07-01 08:18:20'),
-(36, 'member', 'Session member created', 'A new session member was added to the system.', 'admin', 1, '2026-07-01 08:27:25'),
-(37, 'staff', 'Staff archived', 'A staff account was archived.', 'admin', 1, '2026-07-01 08:27:56'),
-(38, 'staff', 'Staff account created', 'A new staff account was added and is ready for use.', 'admin', 1, '2026-07-01 08:28:22'),
+(35, 'staff', 'Password reset handled', 'A password reset request was approved or rejected.', 'admin', 0, '2026-07-01 08:18:20'),
+(36, 'member', 'Session member created', 'A new session member was added to the system.', 'admin', 0, '2026-07-01 08:27:25'),
+(37, 'staff', 'Staff archived', 'A staff account was archived.', 'admin', 0, '2026-07-01 08:27:56'),
+(38, 'staff', 'Staff account created', 'A new staff account was added and is ready for use.', 'admin', 0, '2026-07-01 08:28:22'),
 (39, 'staff', 'Staff account created', 'A new staff account was added and is ready for use.', 'admin', 1, '2026-07-01 08:29:19'),
 (40, 'support', 'New support request', 'A member submitted a new support ticket: test', 'asd asd', 1, '2026-07-01 08:37:36'),
 (41, 'support', 'Support reply sent', 'A staff member replied to a support conversation.', 'admin', 1, '2026-07-01 08:39:40'),
@@ -103,18 +104,7 @@ INSERT INTO `admin_notifications` (`id`, `type`, `title`, `message`, `created_by
 (59, 'support', 'Support reply sent', 'A staff member replied to a support conversation.', 'staff', 1, '2026-07-06 02:05:07'),
 (60, 'support', 'Support reply sent', 'A staff member replied to a support conversation.', 'staff', 1, '2026-07-06 02:05:22'),
 (61, 'support', 'Support reply sent', 'A staff member replied to a support conversation.', 'admin', 1, '2026-07-06 02:05:30'),
-(62, 'staff', 'Password reset approved', 'An auto-login link was sent to the staff.', 'admin', 1, '2026-07-06 04:11:40'),
-(63, 'staff', 'Password reset approved', 'An auto-login link was sent to the staff.', 'admin', 1, '2026-07-07 03:25:32'),
-(64, 'staff', 'Password reset requested', 'A password reset request was created for: asdasdasd', 'admin', 1, '2026-07-07 03:29:10'),
-(65, 'staff', 'Password reset requested', 'A password reset request was created for: staff', 'admin', 1, '2026-07-07 03:29:18'),
-(66, 'staff', 'Password reset rejected', 'A password reset request was rejected.', 'admin', 1, '2026-07-07 03:29:39'),
-(67, 'staff', 'Password reset rejected', 'A password reset request was rejected.', 'admin', 1, '2026-07-07 03:29:41'),
-(68, 'staff', 'New Password Reset Request', 'Too many incorrect OTP verification attempts.', 'staff', 1, '2026-07-07 03:46:08'),
-(69, 'staff', 'Staff account unlocked', 'A locked staff account was unlocked.', 'admin', 1, '2026-07-07 03:47:03'),
-(70, 'staff', 'Staff status changed', 'A staff account status was changed.', 'admin', 0, '2026-07-07 03:51:07'),
-(71, 'staff', 'Staff status changed', 'A staff account status was changed.', 'admin', 0, '2026-07-07 03:51:09'),
-(72, 'staff', 'Staff account unlocked', 'A locked staff account was unlocked.', 'admin', 1, '2026-07-07 03:51:15'),
-(73, 'staff', 'Password reset approved', 'An auto-login link was sent to the staff.', 'admin', 0, '2026-07-07 03:56:02');
+(62, 'staff', 'Password reset approved', 'An auto-login link was sent to the staff.', 'admin', 0, '2026-07-06 04:11:40');
 
 -- --------------------------------------------------------
 
@@ -159,40 +149,21 @@ CREATE TABLE `entry_logs` (
 --
 
 INSERT INTO `entry_logs` (`id`, `member_id`, `member_name`, `entry_type`, `amount_charged`, `payment_method`, `entry_time`) VALUES
-(1, 5, 'asd', 'membership', 0.00, 'free', '2026-04-14 03:11:26'),
-(2, NULL, 'asd', 'walk-in', 50.00, 'cash', '2026-04-14 03:11:58'),
-(3, 6, 'jayson bernante', 'session', 50.00, 'credit', '2026-04-15 22:16:14'),
-(4, 5, 'asd', 'membership', 0.00, 'free', '2026-04-15 22:24:22'),
-(5, NULL, 'yordan', 'walk-in', 50.00, 'cash', '2026-04-15 22:25:11'),
-(6, 19, 'alegria hosting', 'membership', 0.00, 'free', '2026-04-17 17:59:15'),
-(7, 19, 'alegria hosting', 'membership', 0.00, 'free', '2026-04-17 17:59:18'),
-(8, 19, 'alegria hosting', 'membership', 0.00, 'free', '2026-04-17 17:59:19'),
-(9, 19, 'alegria hosting', 'membership', 0.00, 'free', '2026-04-17 17:59:26'),
-(10, 19, 'alegria hosting', 'membership', 0.00, 'free', '2026-04-17 17:59:34'),
-(11, 20, 'jerome bernante', 'membership', 0.00, 'free', '2026-04-17 19:49:24'),
-(12, 20, 'jerome bernante', 'membership', 0.00, 'free', '2026-04-17 19:49:33'),
-(13, 21, 'jerome bernante', 'session', 50.00, 'cash', '2026-04-17 19:50:25'),
-(14, 21, 'jerome bernante', 'session', 50.00, 'cash', '2026-04-17 19:51:42'),
-(15, NULL, 'yordan', 'walk-in', 50.00, 'cash', '2026-04-28 17:41:13'),
-(16, 24, 'sean roscoe', 'membership', 0.00, 'free', '2026-06-28 23:17:24'),
-(17, 24, 'sean roscoe', 'membership', 0.00, 'free', '2026-06-28 23:17:42'),
-(18, 24, 'sean roscoe', 'membership', 0.00, 'free', '2026-06-28 23:17:44'),
-(19, 24, 'sean roscoe', 'membership', 0.00, 'free', '2026-06-28 23:17:45'),
-(20, 24, 'sean roscoe', 'membership', 0.00, 'free', '2026-06-28 23:17:45'),
-(21, 21, 'jerome bernante', 'session', 50.00, 'cash', '2026-06-28 23:18:08'),
-(22, 24, 'sean roscoe', 'membership', 0.00, 'free', '2026-06-29 23:41:41'),
-(23, 24, 'sean roscoe', 'membership', 0.00, 'free', '2026-06-29 23:41:47'),
-(24, 21, 'jerome bernante', 'membership_renewal', 850.00, 'credit', '2026-06-30 05:28:17'),
-(25, 21, 'jerome bernante', 'membership_renewal', 850.00, 'credit', '2026-06-30 05:28:42'),
-(26, 19, 'alegria hosting', 'membership_renewal', 850.00, 'credit', '2026-06-30 05:29:47'),
-(27, 19, 'alegria hosting', 'membership_renewal', 850.00, 'cash', '2026-06-30 05:30:35'),
-(28, 19, 'alegria hosting', 'membership_renewal', 850.00, 'cash', '2026-06-30 05:34:30'),
-(29, 34, 'jayson test', 'membership_renewal', 850.00, 'cash', '2026-06-30 05:35:07'),
-(30, 19, 'alegria hosting', 'membership_renewal', 850.00, 'cash', '2026-06-30 05:44:47'),
-(31, 21, 'jerome bernante', 'membership_renewal', 850.00, 'credit', '2026-06-30 05:45:32'),
-(32, 21, 'jerome bernante', 'membership_renewal', 1800.00, 'credit', '2026-06-30 05:46:07'),
-(33, 21, 'jerome bernante', 'membership_renewal', 1800.00, 'cash', '2026-06-30 05:46:22'),
-(34, 34, 'jayson test', 'membership_renewal', 850.00, 'cash', '2026-06-30 06:24:00');
+(1, 5, 'asd', 'membership', '0.00', 'free', '2026-04-14 03:11:26'),
+(2, NULL, 'asd', 'walk-in', '50.00', 'cash', '2026-04-14 03:11:58'),
+(3, 6, 'jayson bernante', 'session', '50.00', 'credit', '2026-04-15 22:16:14'),
+(4, 5, 'asd', 'membership', '0.00', 'free', '2026-04-15 22:24:22'),
+(5, NULL, 'yordan', 'walk-in', '50.00', 'cash', '2026-04-15 22:25:11'),
+(6, 19, 'alegria hosting', 'membership', '0.00', 'free', '2026-04-17 17:59:15'),
+(7, 19, 'alegria hosting', 'membership', '0.00', 'free', '2026-04-17 17:59:18'),
+(8, 19, 'alegria hosting', 'membership', '0.00', 'free', '2026-04-17 17:59:19'),
+(9, 19, 'alegria hosting', 'membership', '0.00', 'free', '2026-04-17 17:59:26'),
+(10, 19, 'alegria hosting', 'membership', '0.00', 'free', '2026-04-17 17:59:34'),
+(11, 20, 'jerome bernante', 'membership', '0.00', 'free', '2026-04-17 19:49:24'),
+(12, 20, 'jerome bernante', 'membership', '0.00', 'free', '2026-04-17 19:49:33'),
+(13, 21, 'jerome bernante', 'session', '50.00', 'cash', '2026-04-17 19:50:25'),
+(14, 21, 'jerome bernante', 'session', '50.00', 'cash', '2026-04-17 19:51:42'),
+(15, NULL, 'yordan', 'walk-in', '50.00', 'cash', '2026-05-27 10:40:03');
 
 -- --------------------------------------------------------
 
@@ -225,7 +196,13 @@ CREATE TABLE `members` (
 --
 
 INSERT INTO `members` (`id`, `user_id`, `first_name`, `last_name`, `phone`, `address`, `type`, `membership_start`, `membership_end`, `password`, `username`, `gmail`, `RFID`, `Joined_Date`, `credit`, `plan_months`, `membership_expiry`) VALUES
-(38, NULL, 'asd', 'asd', '09834242342', 'asdasdasdasdasd', 'session', NULL, NULL, '$2y$10$RDOt1D97rwEZJAohrsoJ8uIM5CB.jeQ7CEijs6V30gfwPoyWtmqxi', 'asdasd', 'asd@gmail.com', NULL, '2026-07-01', 0.00, NULL, NULL);
+(5, NULL, 'asd', '', '', '', 'member', NULL, NULL, '$2y$10$upP3tN6xk9lmZXpcLTalbuBVSX4qcbF.La74LudLcegUGd8as.5Qa', 'asd', 'asd@example.com', '111', '2026-04-13', '0.00', NULL, NULL),
+(6, NULL, 'jayson', 'bernante', '', '', 'session', NULL, NULL, '$2y$10$MNXZPTcntSM6U8Go8ebXXO/Rsum1Rdehwuy0tSdxiAby04aG/M6/m', 'jaysonbernante', '', '11', '2026-04-13', '440.00', NULL, NULL),
+(18, NULL, 'ben', 'onde', '098564645', 'caloocan', 'session', NULL, NULL, '$2y$10$n7Vj0WpCibfHTaXsDK4gHOnRvQPyG9MCUwYsjhSXy5LhzT/IGmh/y', 'benonde', 'benonde@gmail.com', NULL, '2026-04-15', '0.00', NULL, NULL),
+(19, NULL, 'alegria', 'hosting', '123123123123', 'asdasdd', 'member', NULL, NULL, '$2y$10$UpyVMci82F8J44PeQPJVYeFlwO7ZskQGGd4D3BacUJHp14tDZHpRW', 'alegriahosting', 'alegriasystemmngr@gmail.com', '1244219170', '2026-04-17', '1222.00', 1, '2026-05-17'),
+(21, NULL, 'jerome', 'bernante', '', '', 'session', NULL, NULL, '$2y$10$bBZ27KQTtOkqGCEBmeSvL.d4PLWAYb32sN0oNyhdFQOadMMSYs5rS', 'jeromebernante', '', '1261553234', '2026-04-17', '0.00', NULL, NULL),
+(23, NULL, 'Darel', 'Rodriguez', '0933343245', '54 Baltazar bukid', 'session', NULL, NULL, '$2y$10$Oa9g1XFU4qwzSCsw0JK0NO8VeCmMkgUECue7s5kVyk7UliN/XhFy2', 'darelrodriguez', 'darelrodriguez24@gmail.com', NULL, '2026-06-22', '0.00', NULL, NULL),
+(38, NULL, 'asd', 'asd', '11111111111', 'asd', 'session', NULL, NULL, '$2y$10$RDOt1D97rwEZJAohrsoJ8uIM5CB.jeQ7CEijs6V30gfwPoyWtmqxi', 'asdasd', 'asd@gmail.com', NULL, '2026-07-01', '0.00', NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -247,7 +224,7 @@ CREATE TABLE `members_archived` (
   `archived_by` varchar(100) DEFAULT NULL,
   `reason` text DEFAULT NULL,
   `original_data` longtext DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=MyISAM DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
 --
 -- Dumping data for table `members_archived`
@@ -277,7 +254,7 @@ CREATE TABLE `member_audit` (
   `reason` text DEFAULT NULL,
   `details` longtext DEFAULT NULL,
   `created_at` datetime DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=MyISAM DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
 --
 -- Dumping data for table `member_audit`
@@ -326,24 +303,24 @@ CREATE TABLE `member_transactions` (
   `notes` text DEFAULT NULL,
   `created_at` datetime DEFAULT current_timestamp(),
   `created_by` varchar(100) DEFAULT 'system'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=MyISAM DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
 --
 -- Dumping data for table `member_transactions`
 --
 
 INSERT INTO `member_transactions` (`id`, `member_id`, `member_name`, `transaction_type`, `amount`, `payment_method`, `plan_months`, `old_expiry`, `new_expiry`, `rfid`, `notes`, `created_at`, `created_by`) VALUES
-(1, 21, 'jerome bernante', 'membership_renewal', 850.00, 'credit', 1, NULL, '2026-07-30', '1261553234', 'Membership renewal', '2026-06-30 05:28:17', 'system'),
-(2, 21, 'jerome bernante', 'membership_renewal', 850.00, 'credit', 1, '2026-07-30', '2026-07-30', '1261553234', 'Membership renewal', '2026-06-30 05:28:42', 'system'),
-(3, 19, 'alegria hosting', 'membership_renewal', 850.00, 'credit', 1, '2026-05-17', '2026-07-30', '1244219170', 'Membership renewal', '2026-06-30 05:29:47', 'system'),
-(4, 19, 'alegria hosting', 'membership_renewal', 850.00, 'cash', 1, '2026-07-30', '2026-07-30', '1244219170', 'Membership renewal', '2026-06-30 05:30:35', 'system'),
-(5, 19, 'alegria hosting', 'membership_renewal', 850.00, 'cash', 2, '2026-07-30', '2026-08-30', '1244219170', 'Membership renewal / advance', '2026-06-30 05:34:30', 'system'),
-(6, 34, 'jayson test', 'membership_renewal', 850.00, 'cash', 1, NULL, '2026-07-30', '1247670786', 'Membership renewal / advance', '2026-06-30 05:35:07', 'system'),
-(7, 19, 'alegria hosting', 'membership_renewal', 850.00, 'cash', 1, '2026-08-30', '2026-07-30', '1244219170', 'Membership renewal', '2026-06-30 05:44:47', 'system'),
-(8, 21, 'jerome bernante', 'membership_renewal', 850.00, 'credit', 1, '2026-07-30', '2026-07-30', '1261553234', 'Membership renewal', '2026-06-30 05:45:32', 'system'),
-(9, 21, 'jerome bernante', 'membership_renewal', 1800.00, 'credit', 3, '2026-07-30', '2026-09-30', '1261553234', 'Membership renewal', '2026-06-30 05:46:07', 'system'),
-(10, 21, 'jerome bernante', 'membership_renewal', 1800.00, 'cash', 3, '2026-09-30', '2026-09-30', '1261553234', 'Membership renewal', '2026-06-30 05:46:22', 'system'),
-(11, 34, 'jayson test', 'Membership Extension', 850.00, 'cash', 1, '2026-07-30', '2026-07-30', '1247670786', 'Membership Extension', '2026-06-30 06:24:00', 'system');
+(1, 21, 'jerome bernante', 'membership_renewal', '850.00', 'credit', 1, NULL, '2026-07-30', '1261553234', 'Membership renewal', '2026-06-30 05:28:17', 'system'),
+(2, 21, 'jerome bernante', 'membership_renewal', '850.00', 'credit', 1, '2026-07-30', '2026-07-30', '1261553234', 'Membership renewal', '2026-06-30 05:28:42', 'system'),
+(3, 19, 'alegria hosting', 'membership_renewal', '850.00', 'credit', 1, '2026-05-17', '2026-07-30', '1244219170', 'Membership renewal', '2026-06-30 05:29:47', 'system'),
+(4, 19, 'alegria hosting', 'membership_renewal', '850.00', 'cash', 1, '2026-07-30', '2026-07-30', '1244219170', 'Membership renewal', '2026-06-30 05:30:35', 'system'),
+(5, 19, 'alegria hosting', 'membership_renewal', '850.00', 'cash', 2, '2026-07-30', '2026-08-30', '1244219170', 'Membership renewal / advance', '2026-06-30 05:34:30', 'system'),
+(6, 34, 'jayson test', 'membership_renewal', '850.00', 'cash', 1, NULL, '2026-07-30', '1247670786', 'Membership renewal / advance', '2026-06-30 05:35:07', 'system'),
+(7, 19, 'alegria hosting', 'membership_renewal', '850.00', 'cash', 1, '2026-08-30', '2026-07-30', '1244219170', 'Membership renewal', '2026-06-30 05:44:47', 'system'),
+(8, 21, 'jerome bernante', 'membership_renewal', '850.00', 'credit', 1, '2026-07-30', '2026-07-30', '1261553234', 'Membership renewal', '2026-06-30 05:45:32', 'system'),
+(9, 21, 'jerome bernante', 'membership_renewal', '1800.00', 'credit', 3, '2026-07-30', '2026-09-30', '1261553234', 'Membership renewal', '2026-06-30 05:46:07', 'system'),
+(10, 21, 'jerome bernante', 'membership_renewal', '1800.00', 'cash', 3, '2026-09-30', '2026-09-30', '1261553234', 'Membership renewal', '2026-06-30 05:46:22', 'system'),
+(11, 34, 'jayson test', 'Membership Extension', '850.00', 'cash', 1, '2026-07-30', '2026-07-30', '1247670786', 'Membership Extension', '2026-06-30 06:24:00', 'system');
 
 -- --------------------------------------------------------
 
@@ -359,35 +336,16 @@ CREATE TABLE `password_reset_requests` (
   `status` varchar(20) NOT NULL DEFAULT 'pending',
   `created_at` datetime DEFAULT current_timestamp(),
   `handled_by` varchar(100) DEFAULT NULL,
-  `handled_at` datetime DEFAULT NULL,
-  `auto_login_token` varchar(128) DEFAULT NULL,
-  `auto_login_expiry` datetime DEFAULT NULL,
-  `email` varchar(255) DEFAULT NULL,
-  `requested_by` int(11) DEFAULT NULL,
-  `requested_at` datetime DEFAULT current_timestamp(),
-  `reset_method` varchar(20) DEFAULT NULL,
-  `full_name` varchar(255) DEFAULT NULL,
-  `role` varchar(50) DEFAULT NULL,
-  `approved_by` int(11) DEFAULT NULL,
-  `approved_at` datetime DEFAULT NULL,
-  `rejected_by` int(11) DEFAULT NULL,
-  `rejected_at` datetime DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  `handled_at` datetime DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
 --
 -- Dumping data for table `password_reset_requests`
 --
 
-INSERT INTO `password_reset_requests` (`id`, `user_id`, `username`, `reason`, `status`, `created_at`, `handled_by`, `handled_at`, `auto_login_token`, `auto_login_expiry`, `email`, `requested_by`, `requested_at`, `reset_method`, `full_name`, `role`, `approved_by`, `approved_at`, `rejected_by`, `rejected_at`) VALUES
-(7, 4, 'staff', 'forgot pass test', 'approved', '2026-06-29 23:16:20', 'admin', '2026-06-29 23:16:28', NULL, NULL, NULL, NULL, '2026-07-06 04:11:09', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(8, 7, 'staff', 'Forgotpassword testing2', 'approved', '2026-06-29 23:55:29', 'admin', '2026-06-29 23:55:56', NULL, NULL, NULL, NULL, '2026-07-06 04:11:09', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(9, 7, 'staff', 'forgotpassword test', 'approved', '2026-06-30 06:47:30', 'admin', '2026-06-30 06:47:34', NULL, NULL, NULL, NULL, '2026-07-06 04:11:09', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(10, 15, 'zxc', 'zxc', 'approved', '2026-07-01 08:17:55', 'admin', '2026-07-01 08:18:20', NULL, NULL, NULL, NULL, '2026-07-06 04:11:09', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(11, 10, 'staff', 'Forgot password request', 'approved', '2026-07-06 04:11:11', 'admin', '2026-07-06 04:11:39', 'a8794fafbbdf2496f5c3701ba4ba312d1def115f5676136b', '2026-07-06 04:21:39', 'Jaysonbernante@gmail.com', 10, '2026-07-06 04:11:11', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(12, 1, 'admin', 'Forgot password request', 'approved', '2026-07-07 02:38:47', 'admin', '2026-07-07 03:25:28', 'f59d7b8db105b928255abf38c7d05f60f6527766fe97cbec', '2026-07-07 03:35:28', 'jaysonbernante1@gmail.com', 1, '2026-07-07 02:38:47', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(13, 16, 'asdasdasd', 'Admin requested password reset', 'rejected', '2026-07-07 03:29:10', 'admin', '2026-07-07 03:29:41', NULL, NULL, 'asdasdasd@gmail.com', 1, '2026-07-07 03:29:10', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(14, 10, 'staff', 'Admin requested password reset', 'rejected', '2026-07-07 03:29:18', 'admin', '2026-07-07 03:29:39', NULL, NULL, 'jaysonbernante@gmail.com', 1, '2026-07-07 03:29:18', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(15, 10, '', 'Too many incorrect OTP verification attempts (3 attempts). Account temporarily blocked for 10 minutes.', 'approved', '2026-07-07 03:46:08', 'admin', '2026-07-07 03:55:58', '090ac470c34e393192027c183076b460c9e374ce17dd6493', '2026-07-07 04:05:58', 'jaysonbernante@gmail.com', 10, '2026-07-07 03:46:08', NULL, 'staff', 'staff', 1, '2026-07-07 03:55:58', NULL, NULL);
+INSERT INTO `password_reset_requests` (`id`, `user_id`, `username`, `reason`, `status`, `created_at`, `handled_by`, `handled_at`) VALUES
+(1, 3, 'asd', 'forgot password test', 'pending', '2026-06-29 08:11:03', NULL, NULL),
+(2, 4, 'staff', 'forgot password test', 'pending', '2026-06-29 08:15:18', NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -410,7 +368,10 @@ CREATE TABLE `products` (
 --
 
 INSERT INTO `products` (`id`, `product_name`, `quantity`, `price`, `img`, `date_stocked`, `is_archived`) VALUES
-(9, 'Protein', 858, 200.00, '', '2026-06-30', 0);
+(7, 'shake', 19, '10.00', '', '2026-04-15', 0),
+(8, 'Boiled Egg', 48, '15.00', '', '2026-04-20', 0),
+(9, 'Micronised Creatine Powder', 9, '340.00', 'prod_1782195257_42ac358f.jpg', '2026-06-22', 0),
+(10, 'Whey Isolate', 100, '60.00', 'prod_1782787149_8ec90f25.jpg', '2026-06-29', 0);
 
 -- --------------------------------------------------------
 
@@ -427,14 +388,15 @@ CREATE TABLE `product_stock_history` (
   `note` varchar(255) DEFAULT NULL,
   `changed_by` varchar(100) DEFAULT NULL,
   `created_at` datetime DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=MyISAM DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
 --
 -- Dumping data for table `product_stock_history`
 --
 
 INSERT INTO `product_stock_history` (`id`, `product_id`, `change_qty`, `prev_qty`, `new_qty`, `note`, `changed_by`, `created_at`) VALUES
-(1, 9, -3, 861, 858, 'Decreased stock', 'admin', '2026-06-30 07:24:55');
+(1, 10, -3, 100, 97, 'Sale', 'admin', '2026-06-29 19:40:05'),
+(2, 10, -2, 100, 98, 'Sale', 'admin', '2026-06-29 19:40:36');
 
 -- --------------------------------------------------------
 
@@ -461,9 +423,20 @@ CREATE TABLE `sales` (
 --
 
 INSERT INTO `sales` (`id`, `product_id`, `product_name`, `qty_sold`, `unit_price`, `total`, `sold_at`, `payment_method`, `member_name`, `transacted_by`, `transaction_id`) VALUES
-(37, 8, 'Protein', 1, 199.00, 199.00, '2026-06-30 06:43:44', 'cash', '-', 'admin', 'dd034aebe330d201'),
-(38, 9, 'Protein', 1, 200.00, 200.00, '2026-06-30 06:44:21', 'card', 'alegria hosting', 'admin', '207fe43e0defcedc'),
-(39, 9, 'Protein', 1, 200.00, 200.00, '2026-06-30 07:09:46', 'cash', '-', 'admin', 'efe7eb09f21659a0');
+(26, 6, 'shabu', 5, '100.00', '500.00', '2026-04-15 22:20:59', 'cash', '-', 'admin', 'f7af2b85cab86017'),
+(27, 6, 'shabu', 5, '100.00', '500.00', '2026-04-15 22:22:51', 'card', 'jayson bernante', 'admin', 'd9052a090e0a302e'),
+(28, 6, 'shabu', 2, '100.00', '200.00', '2026-04-15 22:23:31', 'card', 'jayson bernante', 'admin', 'b0aeef5a5cd1d853'),
+(29, 7, 'shake', 2, '10.00', '20.00', '2026-04-15 22:23:31', 'card', 'jayson bernante', 'admin', 'b0aeef5a5cd1d853'),
+(30, 6, 'shabu', 3, '100.00', '300.00', '2026-04-17 18:17:12', 'cash', '-', 'admin', '9dd1ff9263481e56'),
+(31, 6, 'shabu', 3, '100.00', '300.00', '2026-04-17 18:17:53', 'cash', '-', 'admin', '998f0871406432d8'),
+(32, 7, 'shake', 4, '10.00', '40.00', '2026-04-17 18:17:53', 'cash', '-', 'admin', '998f0871406432d8'),
+(33, 7, 'shake', 3, '10.00', '30.00', '2026-04-17 18:23:23', 'cash', '-', 'admin', '60c1ca0514e66802'),
+(34, 8, 'Boiled Egg', 1, '15.00', '15.00', '2026-05-27 10:39:32', 'cash', '-', 'admin', 'e82cc0cebd9b5960'),
+(35, 8, 'Boiled Egg', 1, '15.00', '15.00', '2026-05-27 11:53:11', 'cash', '-', 'admin', '152fcfbed71f7cd4'),
+(36, 9, 'Micronised Creatine Powder', 1, '340.00', '340.00', '2026-06-29 12:46:10', 'cash', '-', 'admin', 'e8fd7f372050a99d'),
+(37, 8, 'Protein', 1, '199.00', '199.00', '2026-06-30 06:43:44', 'cash', '-', 'admin', 'dd034aebe330d201'),
+(38, 9, 'Protein', 1, '200.00', '200.00', '2026-06-30 06:44:21', 'card', 'alegria hosting', 'admin', '207fe43e0defcedc'),
+(39, 9, 'Protein', 1, '200.00', '200.00', '2026-06-30 07:09:46', 'cash', '-', 'admin', 'efe7eb09f21659a0');
 
 -- --------------------------------------------------------
 
@@ -480,7 +453,7 @@ CREATE TABLE `staff_archive` (
   `archived_at` datetime DEFAULT current_timestamp(),
   `archived_by` varchar(100) DEFAULT NULL,
   `reason` varchar(255) DEFAULT 'archived'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=MyISAM DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
 --
 -- Dumping data for table `staff_archive`
@@ -582,14 +555,10 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `username`, `password`, `email`, `role`, `created_at`, `status`, `failed_login_attempts`, `locked_until`, `remember_token`, `remember_expires_at`, `password_reset_required`) VALUES
-(1, 'admin', '$2y$10$EZb9GB0NvY7XVe4OU1/qqeeeCuzB0ils1Yx4ahzHBdEltQWixU1/i', 'jaysonbernante1@gmail.com', 'super_admin', '2026-04-12 08:43:31', 'active', 0, NULL, NULL, NULL, 0),
-(10, 'staff', '$2y$10$EPt94x5TSaNul0.mllzmZu02wbC7keSmCIrh4RM46pxBNaQNju5vy', 'jaysonbernante@gmail.com', 'staff', '2026-06-29 23:11:37', 'active', 0, NULL, NULL, NULL, 0),
-(11, 'admin1', '$2y$10$px.QfLkwIBzrwMK6WdggeO7GFYLhuGQ.iIfg1DiJujl6MxHo8QHOe', 'jaysonbernante0@gmail.com', 'super_admin', '2026-06-30 08:43:21', 'active', 0, NULL, NULL, NULL, 0),
-(12, 'asd', '$2y$10$ox45y54JExAkmTzHl36Z8uYCuXZ0/aPnoxqQpIVH414PC8D7AJ1wy', 'asd@gmail.com', 'super_admin', '2026-06-30 08:45:55', 'active', 0, NULL, NULL, NULL, 0),
-(14, 'asdasd', '$2y$10$DZBwALe4x4b8ujyhk11A2OSiP./CyGPxewvZOwl/3bX5opyLoa0mO', 'sdsdssdsd@gmail.com', 'super_admin', '2026-06-30 08:48:35', 'active', 0, NULL, NULL, NULL, 0),
-(16, 'asdasdasd', '$2y$10$Zt1jefASzgFkTiN8JaC2zOVFaJnLfnJ.Bfak./ysBeXslA19W9mZG', 'asdasdasd@gmail.com', 'staff', '2026-07-01 00:28:22', 'active', 0, NULL, NULL, NULL, 0),
-(18, 'asdasdasda', '$2y$10$0WeeUNxRSUjieBwN9alyeeoaarumXqwvqNqqzSGiXgdCFzQT6dW6u', 'asdasd@gmail.com', 'super_admin', '2026-07-01 00:29:19', 'active', 0, NULL, NULL, NULL, 0),
-(19, 'test', '$2y$10$pxn3llye8z1HoysFrROmO.kvxgJDuToWfNEBVDHGUMK9htHLlxSLm', 'test@gmail.com', 'staff', '2026-07-01 01:49:02', 'active', 2, NULL, NULL, NULL, 0);
+(1, 'admin', '$2y$10$PEsXIWlBFf3dqwJnx8Z4..ucCQKz0K8JxsQpwG6CxQKbb4trcnvn6', 'admin@example.com', 'super_admin', '2026-04-12 08:43:31', 'active', 0, NULL, NULL, NULL, 0),
+(3, 'asd', '$2y$10$470XpC7qnO/sFKFU9Pmh1eK53s3NXeL1lJpjDhRHBIZijl8VCggda', 'asd@example.com', 'staff', '2026-04-13 11:46:38', 'inactive', 3, NULL, NULL, NULL, 1),
+(4, 'staff', '$2y$10$zPEVpgz3.UD9yds/VCT4d.jjlR1zEGOWzqALLkVxJ2SQ8e/YITI.C', 'staff@gmail.com', 'staff', '2026-06-23 06:03:14', 'inactive', 0, NULL, NULL, NULL, 1),
+(5, 'eliAdmin', '$2y$10$97zx6TZiHgFxvad0.RldmuSRDoM2mwm5WowKTwhC7hTL.iz49D3Wu', 'eliyordan1@gmail.com', 'super_admin', '2026-06-30 08:30:39', 'active', 0, NULL, NULL, NULL, 0);
 
 -- --------------------------------------------------------
 
@@ -614,15 +583,7 @@ CREATE TABLE `wallet_transactions` (
 --
 
 INSERT INTO `wallet_transactions` (`id`, `member_id`, `transaction_type`, `amount`, `balance_before`, `balance_after`, `reason`, `created_by`, `created_at`) VALUES
-(1, 19, 'credit_add', 1111.00, 111.00, 1222.00, 'Credit input', 'admin', '2026-04-17 10:19:51'),
-(2, 24, 'credit_add', 200.00, 0.00, 200.00, 'Credit input', 'admin', '2026-06-28 15:25:42'),
-(3, 24, 'credit_add', 1000.00, 1.00, 1001.00, 'Credit input', 'admin', '2026-06-28 15:29:53'),
-(4, 24, 'refund', -100.00, 1001.00, 901.00, 'Refund', 'admin', '2026-06-28 15:31:14'),
-(5, 21, 'credit_add', 11111.00, 0.00, 11111.00, 'Credit input', 'admin', '2026-06-28 19:01:50'),
-(6, 21, 'refund', -11111.00, 11111.00, 0.00, 'over cash in', 'admin', '2026-06-29 02:11:43'),
-(7, 21, 'credit_add', 5000.00, 0.00, 5000.00, 'Credit input', 'admin', '2026-06-29 02:12:22'),
-(8, 34, 'credit_add', 500.00, 0.00, 500.00, 'Credit input', 'admin', '2026-06-29 21:07:45'),
-(9, 19, 'credit_add', 1.00, 172.00, 173.00, 'Credit input', 'admin', '2026-06-29 22:54:09');
+(1, 19, 'credit_add', '1111.00', '111.00', '1222.00', 'Credit input', 'admin', '2026-04-17 10:19:51');
 
 --
 -- Indexes for dumped tables
@@ -702,22 +663,6 @@ ALTER TABLE `staff_archive`
   ADD PRIMARY KEY (`id`);
 
 --
--- Indexes for table `support_conversations`
---
-ALTER TABLE `support_conversations`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `member_id` (`member_id`),
-  ADD KEY `updated_at` (`updated_at`);
-
---
--- Indexes for table `support_messages`
---
-ALTER TABLE `support_messages`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `conversation_id` (`conversation_id`),
-  ADD KEY `created_at` (`created_at`);
-
---
 -- Indexes for table `users`
 --
 ALTER TABLE `users`
@@ -740,7 +685,7 @@ ALTER TABLE `wallet_transactions`
 -- AUTO_INCREMENT for table `admin_notifications`
 --
 ALTER TABLE `admin_notifications`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=74;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=63;
 
 --
 -- AUTO_INCREMENT for table `blocked_rfids`
@@ -752,7 +697,7 @@ ALTER TABLE `blocked_rfids`
 -- AUTO_INCREMENT for table `entry_logs`
 --
 ALTER TABLE `entry_logs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=35;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT for table `members`
@@ -782,19 +727,19 @@ ALTER TABLE `member_transactions`
 -- AUTO_INCREMENT for table `password_reset_requests`
 --
 ALTER TABLE `password_reset_requests`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `products`
 --
 ALTER TABLE `products`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `product_stock_history`
 --
 ALTER TABLE `product_stock_history`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `sales`
@@ -809,28 +754,16 @@ ALTER TABLE `staff_archive`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
--- AUTO_INCREMENT for table `support_conversations`
---
-ALTER TABLE `support_conversations`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
-
---
--- AUTO_INCREMENT for table `support_messages`
---
-ALTER TABLE `support_messages`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
-
---
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `wallet_transactions`
 --
 ALTER TABLE `wallet_transactions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- Constraints for dumped tables

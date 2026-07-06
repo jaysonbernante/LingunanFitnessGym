@@ -5,7 +5,7 @@ function get_gmail_smtp_config() {
     $envFromEmail = getenv('GMAIL_SMTP_FROM_EMAIL');
     $envFromName = getenv('GMAIL_SMTP_FROM_NAME');
 
-    $password = $envPassword !== false ? trim((string) $envPassword) : 'lpzslmrjyxbcbwo';
+    $password = $envPassword !== false ? trim((string) $envPassword) : 'hytj pfzc iwky ywfa';
     $password = preg_replace('/\s+/', '', $password);
 
     return [

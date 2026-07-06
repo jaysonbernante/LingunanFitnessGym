@@ -1,10 +1,10 @@
 <?php
 date_default_timezone_set('Asia/Manila');
 
-$host = 'sql201.infinityfree.com';
-$db   = 'if0_41655270_dbgym';
-$user = 'if0_41655270'; // Change if your MySQL user is different
-$pass = '6IdBOGd4gag';
+$host = 'localhost';
+$db   = 'dbgym';
+$user = 'root'; // Change if your MySQL user is different
+$pass = '';
 $charset = 'utf8mb4';
 
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
@@ -20,12 +20,21 @@ try {
 	$pdo->exec("CREATE TABLE IF NOT EXISTS password_reset_requests (
 		id INT AUTO_INCREMENT PRIMARY KEY,
 		user_id INT NOT NULL,
-		username VARCHAR(100) NOT NULL,
+		full_name VARCHAR(255) DEFAULT NULL,
+		email VARCHAR(255) DEFAULT NULL,
+		role VARCHAR(50) DEFAULT NULL,
+		username VARCHAR(100) DEFAULT NULL,
 		reason TEXT DEFAULT NULL,
 		status VARCHAR(20) NOT NULL DEFAULT 'pending',
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		requested_by INT DEFAULT NULL,
+		requested_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		handled_by VARCHAR(100) DEFAULT NULL,
-		handled_at DATETIME DEFAULT NULL
+		handled_at DATETIME DEFAULT NULL,
+		approved_by INT DEFAULT NULL,
+		approved_at DATETIME DEFAULT NULL,
+		rejected_by INT DEFAULT NULL,
+		rejected_at DATETIME DEFAULT NULL
 	)");
 
 	$columns = [
@@ -92,6 +101,30 @@ try {
         try { $pdo->exec("ALTER TABLE password_reset_requests ADD COLUMN email VARCHAR(255) DEFAULT NULL"); } catch (PDOException $__e) {}
         try { $pdo->exec("ALTER TABLE password_reset_requests ADD COLUMN requested_by INT DEFAULT NULL"); } catch (PDOException $__e) {}
         try { $pdo->exec("ALTER TABLE password_reset_requests ADD COLUMN requested_at DATETIME DEFAULT CURRENT_TIMESTAMP"); } catch (PDOException $__e) {}
+    }
+
+    // Add request review metadata columns to password_reset_requests if missing
+    try {
+        $pdo->exec("ALTER TABLE password_reset_requests 
+            ADD COLUMN IF NOT EXISTS full_name VARCHAR(255) NULL DEFAULT NULL,
+            ADD COLUMN IF NOT EXISTS email VARCHAR(255) NULL DEFAULT NULL,
+            ADD COLUMN IF NOT EXISTS role VARCHAR(50) NULL DEFAULT NULL,
+            ADD COLUMN IF NOT EXISTS requested_by INT NULL DEFAULT NULL,
+            ADD COLUMN IF NOT EXISTS requested_at DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+            ADD COLUMN IF NOT EXISTS approved_by INT NULL DEFAULT NULL,
+            ADD COLUMN IF NOT EXISTS approved_at DATETIME NULL DEFAULT NULL,
+            ADD COLUMN IF NOT EXISTS rejected_by INT NULL DEFAULT NULL,
+            ADD COLUMN IF NOT EXISTS rejected_at DATETIME NULL DEFAULT NULL");
+    } catch (PDOException $e) {
+        try { $pdo->exec("ALTER TABLE password_reset_requests ADD COLUMN full_name VARCHAR(255) NULL DEFAULT NULL"); } catch (PDOException $__e) {}
+        try { $pdo->exec("ALTER TABLE password_reset_requests ADD COLUMN email VARCHAR(255) NULL DEFAULT NULL"); } catch (PDOException $__e) {}
+        try { $pdo->exec("ALTER TABLE password_reset_requests ADD COLUMN role VARCHAR(50) NULL DEFAULT NULL"); } catch (PDOException $__e) {}
+        try { $pdo->exec("ALTER TABLE password_reset_requests ADD COLUMN requested_by INT NULL DEFAULT NULL"); } catch (PDOException $__e) {}
+        try { $pdo->exec("ALTER TABLE password_reset_requests ADD COLUMN requested_at DATETIME NULL DEFAULT CURRENT_TIMESTAMP"); } catch (PDOException $__e) {}
+        try { $pdo->exec("ALTER TABLE password_reset_requests ADD COLUMN approved_by INT NULL DEFAULT NULL"); } catch (PDOException $__e) {}
+        try { $pdo->exec("ALTER TABLE password_reset_requests ADD COLUMN approved_at DATETIME NULL DEFAULT NULL"); } catch (PDOException $__e) {}
+        try { $pdo->exec("ALTER TABLE password_reset_requests ADD COLUMN rejected_by INT NULL DEFAULT NULL"); } catch (PDOException $__e) {}
+        try { $pdo->exec("ALTER TABLE password_reset_requests ADD COLUMN rejected_at DATETIME NULL DEFAULT NULL"); } catch (PDOException $__e) {}
     }
 
     // Add auto-login token columns to password_reset_requests if missing

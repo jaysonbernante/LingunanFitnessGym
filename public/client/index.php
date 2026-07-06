@@ -41,6 +41,27 @@ if (is_array($pendingReset) && !empty($pendingReset['otp_hash']) && isset($pendi
   unset($_SESSION['staff_password_reset']);
 }
 
+$createPasswordResetRequest = function (PDO $pdo, array $account, string $reason, ?int $requestedBy = null): void {
+  $userId = intval($account['id'] ?? 0);
+  if ($userId <= 0) {
+    return;
+  }
+
+  $fullName = trim((string) ($account['full_name'] ?? $account['username'] ?? ''));
+  $email = trim((string) ($account['email'] ?? ''));
+  $role = trim((string) ($account['role'] ?? 'staff'));
+
+  $check = $pdo->prepare("SELECT id FROM password_reset_requests WHERE user_id = ? AND status = 'pending' AND reason = ? LIMIT 1");
+  $check->execute([$userId, $reason]);
+  if ($check->fetch()) {
+    return;
+  }
+
+  $stmt = $pdo->prepare("INSERT INTO password_reset_requests (user_id, full_name, email, role, reason, status, requested_by, requested_at) VALUES (?, ?, ?, ?, ?, 'pending', ?, NOW())");
+  $stmt->execute([$userId, $fullName !== '' ? $fullName : $email, $email, $role, $reason, $requestedBy]);
+  add_admin_notification($pdo, 'staff', 'New Password Reset Request', 'Too many incorrect OTP verification attempts.', $fullName !== '' ? $fullName : $email);
+};
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if (isset($_POST['staff_forgot_password_submit'])) {
     $resetEmail = trim($_POST['reset_email'] ?? '');
@@ -54,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $resetStep = 'forgot';
         $resetError = 'This email is temporarily blocked after too many failed attempts. Please try again in 10 minutes.';
       } else {
-        $stmt = $pdo->prepare("SELECT id, username, email FROM users WHERE email = ? AND role IN ('super_admin','staff') LIMIT 1");
+        $stmt = $pdo->prepare("SELECT id, username, email, role, locked_until, failed_login_attempts FROM users WHERE email = ? AND role IN ('super_admin','staff','admin') LIMIT 1");
         $stmt->execute([$resetEmail]);
         $account = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -62,40 +83,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           $resetStep = 'forgot';
           $resetError = 'No staff account was found with that email.';
         } else {
-          unset($resetBlocks[$normalizedEmail]);
-          $_SESSION[$resetBlockKey] = $resetBlocks;
-
-          $otp = str_pad((string) random_int(100000, 999999), 6, '0', STR_PAD_LEFT);
-          $otpHash = password_hash($otp, PASSWORD_DEFAULT);
-          $_SESSION['staff_password_reset'] = [
-            'user_id' => intval($account['id']),
-            'email' => $resetEmail,
-            'otp_hash' => $otpHash,
-            'otp_expiry' => time() + 600,
-            'otp_plain' => $otp,
-          ];
-
-          $mailBody = '<html><body><h2>Staff password reset</h2><p>Your verification code is:</p><h1 style="font-size:32px;letter-spacing:4px;">' . htmlspecialchars($otp) . '</h1><p>This code expires in 10 minutes.</p><p>Thank you,<br>Lingunan Fitness Gym</p></body></html>';
-          $mailResult = send_gmail_smtp($resetEmail, 'Staff password reset verification', $mailBody);
-
-          if ($mailResult === true) {
-            $resetStep = 'otp';
-            $resetMessage = 'A 6-digit OTP was sent to your email. Enter it below to reset your password.';
-          } else {
-            $mailError = is_string($mailResult) ? $mailResult : 'Mail delivery failed.';
-            error_log('OTP mail failed for ' . $resetEmail . ': ' . $mailError);
-
-            $requestCheck = $pdo->prepare("SELECT id FROM password_reset_requests WHERE user_id = ? AND status = 'pending' LIMIT 1");
-            $requestCheck->execute([intval($account['id'])]);
-            if (!$requestCheck->fetch()) {
-              $pdo->prepare("INSERT INTO password_reset_requests (user_id, username, email, reason, status, requested_by, requested_at) VALUES (?, ?, ?, ?, 'pending', ?, NOW())")
-                ->execute([intval($account['id']), $account['username'], $resetEmail, 'Forgot password request', intval($account['id'])]);
-            }
-
-            unset($_SESSION['staff_password_reset']);
+          $lockUntil = !empty($account['locked_until']) ? strtotime($account['locked_until']) : null;
+          if ($lockUntil !== null && $lockUntil > time()) {
             $resetStep = 'forgot';
-            $resetMessage = 'We could not send the OTP automatically. Your password reset request has been sent to admin for approval.';
-            $resetError = '';
+            $resetError = 'This email is temporarily blocked after too many failed attempts. Please try again in 10 minutes.';
+          } else {
+            if ($lockUntil !== null && $lockUntil <= time()) {
+              $pdo->prepare("UPDATE users SET locked_until = NULL, failed_login_attempts = 0 WHERE id = ? AND role IN ('super_admin','staff','admin') LIMIT 1")
+                ->execute([intval($account['id'])]);
+            }
+            unset($resetBlocks[$normalizedEmail]);
+            $_SESSION[$resetBlockKey] = $resetBlocks;
+
+            $otp = str_pad((string) random_int(100000, 999999), 6, '0', STR_PAD_LEFT);
+            $otpHash = password_hash($otp, PASSWORD_DEFAULT);
+            $_SESSION['staff_password_reset'] = [
+              'user_id' => intval($account['id']),
+              'email' => $resetEmail,
+              'full_name' => $account['username'] ?? '',
+              'role' => $account['role'] ?? 'staff',
+              'otp_hash' => $otpHash,
+              'otp_expiry' => time() + 600,
+              'otp_plain' => $otp,
+            ];
+
+            $mailBody = '<html><body><h2>Staff password reset</h2><p>Your verification code is:</p><h1 style="font-size:32px;letter-spacing:4px;">' . htmlspecialchars($otp) . '</h1><p>This code expires in 10 minutes.</p><p>Thank you,<br>Lingunan Fitness Gym</p></body></html>';
+            $mailResult = send_gmail_smtp($resetEmail, 'Staff password reset verification', $mailBody);
+
+            if ($mailResult === true) {
+              $resetStep = 'otp';
+              $resetMessage = 'A 6-digit OTP was sent to your email. Enter it below to reset your password.';
+            } else {
+              $mailError = is_string($mailResult) ? $mailResult : 'Mail delivery failed.';
+              error_log('OTP mail failed for ' . $resetEmail . ': ' . $mailError);
+
+              $createPasswordResetRequest($pdo, $account, 'Forgot password request', intval($account['id']));
+
+              unset($_SESSION['staff_password_reset']);
+              $resetStep = 'forgot';
+              $resetMessage = 'We could not send the OTP automatically. Your password reset request has been sent to admin for approval.';
+              $resetError = 'Gmail replied: ' . $mailError;
+            }
           }
         }
       }
@@ -131,12 +159,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $pendingReset['attempts'] = $attempts;
       $_SESSION['staff_password_reset'] = $pendingReset;
 
+      $pdo->prepare("UPDATE users SET failed_login_attempts = ? WHERE id = ? AND role IN ('super_admin','staff','admin') LIMIT 1")
+        ->execute([$attempts, intval($pendingReset['user_id'])]);
+
       if ($attempts >= 3) {
+        $blockUntil = date('Y-m-d H:i:s', time() + 600);
+        $pdo->prepare("UPDATE users SET failed_login_attempts = ?, locked_until = ? WHERE id = ? AND role IN ('super_admin','staff','admin') LIMIT 1")
+          ->execute([$attempts, $blockUntil, intval($pendingReset['user_id'])]);
         $resetBlocks[$normalizedEmail] = [
           'blocked_until' => time() + 600,
           'attempts' => $attempts,
         ];
         $_SESSION[$resetBlockKey] = $resetBlocks;
+        $createPasswordResetRequest($pdo, [
+          'id' => intval($pendingReset['user_id']),
+          'full_name' => $pendingReset['full_name'] ?? '',
+          'email' => $resetEmail,
+          'role' => $pendingReset['role'] ?? 'staff',
+          'username' => $pendingReset['full_name'] ?? '',
+        ], 'Too many incorrect OTP verification attempts (3 attempts). Account temporarily blocked for 10 minutes.', intval($pendingReset['user_id']));
         unset($_SESSION['staff_password_reset']);
         $resetStep = 'forgot';
         $resetError = 'Too many incorrect OTP attempts. This email is blocked for 10 minutes.';
@@ -146,7 +187,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $resetStep = 'otp';
       }
     } else {
-      $stmt = $pdo->prepare("UPDATE users SET password = ? WHERE id = ? AND role IN ('super_admin','staff') LIMIT 1");
+      $stmt = $pdo->prepare("UPDATE users SET password = ? WHERE id = ? AND role IN ('super_admin','staff','admin') LIMIT 1");
       $stmt->execute([password_hash($newPassword, PASSWORD_DEFAULT), intval($pendingReset['user_id'])]);
       unset($_SESSION['staff_password_reset']);
       unset($resetBlocks[$normalizedEmail]);

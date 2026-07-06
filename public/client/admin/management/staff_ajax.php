@@ -70,15 +70,18 @@ function renderStaffRows(array $staffList): string {
 function renderResetRows(array $resetRequests): string {
     ob_start();
     if (empty($resetRequests)): ?>
-        <tr><td colspan="5" style="text-align:center;">No password reset requests found.</td></tr>
+        <tr><td colspan="7" style="text-align:center;">No password reset requests found.</td></tr>
     <?php else: foreach ($resetRequests as $request): ?>
+        <?php $status = (string) ($request['status'] ?? 'pending'); ?>
         <tr>
-            <td data-label="Username"><?= htmlspecialchars($request['username']) ?></td>
+            <td data-label="Username"><?= htmlspecialchars($request['full_name'] ?? $request['username'] ?? '-') ?></td>
+            <td data-label="Email"><?= htmlspecialchars($request['email'] ?? '-') ?></td>
+            <td data-label="Role"><?= htmlspecialchars($request['role'] ?? 'Staff') ?></td>
             <td data-label="Reason"><?= htmlspecialchars($request['reason'] ?? '-') ?></td>
-            <td data-label="Status"><?= htmlspecialchars($request['status']) ?></td>
-            <td data-label="Requested"><?= htmlspecialchars($request['created_at']) ?></td>
+            <td data-label="Status"><?= htmlspecialchars(ucfirst($status)) ?></td>
+            <td data-label="Requested"><?= htmlspecialchars($request['requested_at'] ?? $request['created_at'] ?? '-') ?></td>
             <td data-label="Action">
-                <?php if ($request['status'] === 'pending'): ?>
+                <?php if ($status === 'pending'): ?>
                     <form method="post" style="display:inline;">
                         <input type="hidden" name="handle_reset_request" value="1">
                         <input type="hidden" name="request_id" value="<?= $request['id'] ?>">

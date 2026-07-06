@@ -80,12 +80,33 @@ include '../../../../component/admin_sidebar.php';
     }
     .action-btn.delete { color: #d32f2f; }
     .action-btn:hover { text-decoration: underline; }
-    .admin-table th:nth-child(1){ width: 17%; }
-    .admin-table th:nth-child(2){ width: 20%; }
-    .admin-table th:nth-child(3){ width: 12%; }
-    .admin-table th:nth-child(4){ width: 11%; }
-    .admin-table th:nth-child(5){ width: 15%; }
-    .admin-table th:nth-child(6){ width: 25%; }
+    .admin-table.staff-table th:nth-child(1){ width: 17%; }
+    .admin-table.staff-table th:nth-child(2){ width: 20%; }
+    .admin-table.staff-table th:nth-child(3){ width: 12%; }
+    .admin-table.staff-table th:nth-child(4){ width: 11%; }
+    .admin-table.staff-table th:nth-child(5){ width: 15%; }
+    .admin-table.staff-table th:nth-child(6){ width: 25%; }
+
+    .admin-table.reset-requests-table {
+        table-layout: auto;
+        min-width: 960px;
+    }
+    .admin-table.reset-requests-table th:nth-child(1),
+    .admin-table.reset-requests-table td:nth-child(1) { width: 15%; min-width: 150px; }
+    .admin-table.reset-requests-table th:nth-child(2),
+    .admin-table.reset-requests-table td:nth-child(2) { width: 18%; min-width: 170px; }
+    .admin-table.reset-requests-table th:nth-child(3),
+    .admin-table.reset-requests-table td:nth-child(3) { width: 12%; min-width: 120px; }
+    .admin-table.reset-requests-table th:nth-child(4),
+    .admin-table.reset-requests-table td:nth-child(4) { width: 22%; min-width: 220px; }
+    .admin-table.reset-requests-table th:nth-child(5),
+    .admin-table.reset-requests-table td:nth-child(5) { width: 12%; min-width: 120px; }
+    .admin-table.reset-requests-table th:nth-child(6),
+    .admin-table.reset-requests-table td:nth-child(6) { width: 13%; min-width: 140px; }
+    .admin-table.reset-requests-table th:nth-child(7),
+    .admin-table.reset-requests-table td:nth-child(7) { width: 15%; min-width: 170px; }
+    .admin-table.reset-requests-table td, .admin-table.reset-requests-table th { white-space: nowrap; }
+
     .badge-active-status   { display:inline-block; padding:2px 10px; border-radius:12px; font-size:90%; font-weight:600; color:#fff; background:#43a047; }
     .badge-inactive-status { display:inline-block; padding:2px 10px; border-radius:12px; font-size:90%; font-weight:600; color:#fff; background:#757575; }
     .action-btn.deactivate { color: #f57c00; }
@@ -223,15 +244,18 @@ include '../../../../component/admin_sidebar.php';
         function renderResetRows(array $resetRequests): string {
             ob_start();
             if (empty($resetRequests)): ?>
-                <tr><td colspan="5" style="text-align:center;">No password reset requests found.</td></tr>
+                <tr><td colspan="7" style="text-align:center;">No password reset requests found.</td></tr>
             <?php else: foreach ($resetRequests as $request): ?>
+                <?php $status = (string) ($request['status'] ?? 'pending'); $isCompleted = in_array($status, ['approved','rejected'], true); ?>
                 <tr>
-                    <td data-label="Username"><?= htmlspecialchars($request['username']) ?></td>
+                    <td data-label="Username"><?= htmlspecialchars($request['full_name'] ?? $request['username'] ?? '-') ?></td>
+                    <td data-label="Email"><?= htmlspecialchars($request['email'] ?? '-') ?></td>
+                    <td data-label="Role"><?= htmlspecialchars($request['role'] ?? 'Staff') ?></td>
                     <td data-label="Reason"><?= htmlspecialchars($request['reason'] ?? '-') ?></td>
-                    <td data-label="Status"><?= htmlspecialchars($request['status']) ?></td>
-                    <td data-label="Requested"><?= htmlspecialchars($request['created_at']) ?></td>
+                    <td data-label="Status"><?= htmlspecialchars($isCompleted ? ucfirst($status) : ucfirst($status)) ?></td>
+                    <td data-label="Requested"><?= htmlspecialchars($request['requested_at'] ?? $request['created_at'] ?? '-') ?></td>
                     <td data-label="Action">
-                        <?php if ($request['status'] === 'pending'): ?>
+                        <?php if ($status === 'pending'): ?>
                             <form method="post" style="display:inline;">
                                 <input type="hidden" name="handle_reset_request" value="1">
                                 <input type="hidden" name="request_id" value="<?= $request['id'] ?>">
@@ -290,20 +314,33 @@ include '../../../../component/admin_sidebar.php';
         try { $pdo->exec("CREATE TABLE IF NOT EXISTS password_reset_requests (
             id INT AUTO_INCREMENT PRIMARY KEY,
             user_id INT NOT NULL,
-            username VARCHAR(100) NOT NULL,
-            email VARCHAR(255),
+            full_name VARCHAR(255) DEFAULT NULL,
+            email VARCHAR(255) DEFAULT NULL,
+            role VARCHAR(50) DEFAULT NULL,
+            username VARCHAR(100) DEFAULT NULL,
             status VARCHAR(20) DEFAULT 'pending',
             reason VARCHAR(255),
+            reset_method VARCHAR(20) DEFAULT NULL,
             requested_by INT,
             requested_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             approved_by INT,
             approved_at DATETIME,
+            rejected_by INT,
+            rejected_at DATETIME,
             auto_login_token VARCHAR(255),
             auto_login_expiry DATETIME,
             handled_by VARCHAR(100),
             handled_at DATETIME,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         )"); } catch (Exception $e) {}
+        try { $pdo->exec("ALTER TABLE password_reset_requests ADD COLUMN full_name VARCHAR(255) DEFAULT NULL"); } catch (Exception $e) {}
+        try { $pdo->exec("ALTER TABLE password_reset_requests ADD COLUMN email VARCHAR(255) DEFAULT NULL"); } catch (Exception $e) {}
+        try { $pdo->exec("ALTER TABLE password_reset_requests ADD COLUMN role VARCHAR(50) DEFAULT NULL"); } catch (Exception $e) {}
+        try { $pdo->exec("ALTER TABLE password_reset_requests ADD COLUMN approved_by INT DEFAULT NULL"); } catch (Exception $e) {}
+        try { $pdo->exec("ALTER TABLE password_reset_requests ADD COLUMN approved_at DATETIME DEFAULT NULL"); } catch (Exception $e) {}
+        try { $pdo->exec("ALTER TABLE password_reset_requests ADD COLUMN rejected_by INT DEFAULT NULL"); } catch (Exception $e) {}
+        try { $pdo->exec("ALTER TABLE password_reset_requests ADD COLUMN rejected_at DATETIME DEFAULT NULL"); } catch (Exception $e) {}
+        try { $pdo->exec("ALTER TABLE password_reset_requests ADD COLUMN reset_method VARCHAR(20) DEFAULT NULL"); } catch (Exception $e) {}
 
         $defaultStaffPassword = 'Staff1234';
 
@@ -367,10 +404,7 @@ include '../../../../component/admin_sidebar.php';
 
                 if ($resetReq) {
                     if ($action === 'approve') {
-                        $pdo->prepare("UPDATE users SET status = 'active', locked_until = NULL, failed_login_attempts = 0, password_reset_required = 0, password = ? WHERE id = ?")
-                            ->execute([password_hash($defaultStaffPassword, PASSWORD_DEFAULT), $resetReq['user_id']]);
-                    } else {
-                        $pdo->prepare("UPDATE users SET status = 'active', password_reset_required = 0 WHERE id = ?")
+                        $pdo->prepare("UPDATE users SET status = 'active', locked_until = NULL, failed_login_attempts = 0, password_reset_required = 0 WHERE id = ?")
                             ->execute([$resetReq['user_id']]);
                     }
 
@@ -383,8 +417,8 @@ include '../../../../component/admin_sidebar.php';
                         }
                         $expiry = date('Y-m-d H:i:s', strtotime('+10 minutes'));
 
-                        $pdo->prepare("UPDATE password_reset_requests SET status = 'approved', auto_login_token = ?, auto_login_expiry = ?, handled_by = ?, handled_at = NOW() WHERE id = ?")
-                            ->execute([$token, $expiry, $adminName, $requestId]);
+                        $pdo->prepare("UPDATE password_reset_requests SET status = 'approved', approved_by = ?, approved_at = NOW(), rejected_by = NULL, rejected_at = NULL, auto_login_token = ?, auto_login_expiry = ?, handled_by = ?, handled_at = NOW() WHERE id = ?")
+                            ->execute([$_SESSION['user_id'] ?? 0, $token, $expiry, $adminName, $requestId]);
 
                         // Fetch staff email to send auto-login link
                         $userStmt = $pdo->prepare("SELECT email FROM users WHERE id = ? LIMIT 1");
@@ -400,8 +434,8 @@ include '../../../../component/admin_sidebar.php';
 
                         add_admin_notification($pdo, 'staff', 'Password reset approved', 'An auto-login link was sent to the staff.', $adminName);
                     } else {
-                        $pdo->prepare("UPDATE password_reset_requests SET status = ?, handled_by = ?, handled_at = NOW() WHERE id = ?")
-                            ->execute([$action === 'approve' ? 'approved' : 'rejected', $adminName, $requestId]);
+                        $pdo->prepare("UPDATE password_reset_requests SET status = 'rejected', rejected_by = ?, rejected_at = NOW(), approved_by = NULL, approved_at = NULL, handled_by = ?, handled_at = NOW() WHERE id = ?")
+                            ->execute([$_SESSION['user_id'] ?? 0, $adminName, $requestId]);
                         add_admin_notification($pdo, 'staff', 'Password reset rejected', 'A password reset request was rejected.', $adminName);
                     }
                 }
@@ -521,7 +555,7 @@ include '../../../../component/admin_sidebar.php';
                 $reqQuery   .= " AND status = ?";
                 $reqParams[] = $resetStatus;
             }
-            $reqQuery .= " ORDER BY created_at DESC";
+            $reqQuery .= " ORDER BY requested_at DESC";
             $reqStmt = $pdo->prepare($reqQuery);
             $reqStmt->execute($reqParams);
             $resetRequests = $reqStmt->fetchAll();
@@ -567,7 +601,7 @@ include '../../../../component/admin_sidebar.php';
         <div style="margin-top:24px; background:#2b2b2b; padding:16px; border-radius:14px;" id="staffSection">
             <h3 style="margin:0 0 12px; color:#fff;">Staff List</h3>
             <div class="table-wrapper">
-                <table class="admin-table" style="width:100%; background:#333;">
+                <table class="admin-table staff-table" style="width:100%; background:#333;">
                     <thead>
                         <tr>
                             <th>Username</th>
@@ -584,7 +618,7 @@ include '../../../../component/admin_sidebar.php';
         </div>
 
         <div style="margin-top:24px;" id="dropSection">
-            <?php if (($_SESSION['user_role'] ?? '') === 'super_admin'): ?>
+            <?php if (in_array($_SESSION['user_role'] ?? '', ['super_admin', 'admin'], true)): ?>
             <div style="margin-top:24px; background:#2b2b2b; padding:16px; border-radius:14px;" id="resetSection">
                 <h3 style="margin:0 0 12px; color:#fff;">Password Reset Requests</h3>
                 <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:15px;">
@@ -595,22 +629,16 @@ include '../../../../component/admin_sidebar.php';
                         <option value="pending">Pending</option>
                         <option value="approved">Approved</option>
                         <option value="rejected">Rejected</option>
+                        <option value="completed">Completed</option>
                     </select>
-                    <form method="post" action="" style="margin-left:auto; display:flex; gap:10px; align-items:center;">
-                        <select name="request_staff_id" style="padding:8px 12px; border-radius:8px; border:1px solid #ccc; min-width:220px;">
-                            <option value="">Select staff to request</option>
-                            <?php foreach ($staffList as $staffRequestOption): if ($staffRequestOption['role'] === 'staff'): ?>
-                                <option value="<?= intval($staffRequestOption['id']) ?>"><?= htmlspecialchars($staffRequestOption['username']) ?> (<?= htmlspecialchars($staffRequestOption['email'] ?: 'no email') ?>)</option>
-                            <?php endif; endforeach; ?>
-                        </select>
-                        <button type="submit" name="request_staff_reset" value="1" style="padding:8px 18px; border-radius:8px; border:none; background:#f57c00; color:#fff; font-weight:600; cursor:pointer;">Create Request</button>
-                    </form>
                 </div>
                 <div class="table-wrapper">
-                    <table class="admin-table" style="background:#262626;">
+                    <table class="admin-table reset-requests-table" style="background:#262626;">
                         <thead>
                             <tr>
                                 <th>Username</th>
+                                <th>Email</th>
+                                <th>Role</th>
                                 <th>Reason</th>
                                 <th>Status</th>
                                 <th>Requested</th>

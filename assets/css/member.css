@@ -75,11 +75,16 @@ body {
   transition: .2s ease;
 }
 
-.member-menu-item:hover,
+.member-menu-item:hover {
+  background: #fad06ddc;
+  color: #0f172a;
+}
+
 .member-menu-item.active {
   background: #F6C451;
   color: #0f172a;
 }
+
 
 .member-logout {
   display: inline-block;
@@ -435,7 +440,7 @@ body {
     width: 10px;
     height: 10px;
     border-radius: 999px;
-    background: #F6C451;
+    
   }
   .member-logout {
     margin-top: 18px;
